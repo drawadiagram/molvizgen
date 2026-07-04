@@ -1,0 +1,88 @@
+# Reference vs. experiment: build a 1x5 montage of the 5 pairwise-dissimilar
+# structures in the sibling ../new_decoys data directory (reference), a 1x5
+# montage of the 5 pairwise-dissimilar, best-scoring structures from the
+# production campaign (experiment), then assemble the two into one 2x1
+# figure. Only the final assemble step scales to a fixed width.
+#
+# Run from inside molvizgen (this repo):
+#   python3 run_pipeline.py reference_vs_experiment.yaml
+
+out_dir: ../new_decoys
+
+steps:
+  # --- reference branch: the ../new_decoys directory's 70 structures -----
+  - name: ref_find
+    kind: find_flat
+    args:
+      dir: ../new_decoys
+
+  - name: ref_select
+    kind: filter_diversity
+    args:
+      in: "${ref_find.manifest}"
+      chain_field: chain_domain
+      n_select: 5
+
+  - name: ref_figures
+    kind: generate_each
+    args:
+      selection: "${ref_select.manifest}"
+      script: pdz_figure.py
+
+  - name: ref_montage
+    kind: assemble
+    args:
+      images: "${ref_figures.pngs}"
+      rows: 1
+      cols: 5
+      no_scale: true
+      out: reference_montage.png
+
+  # --- experiment branch: production campaign (best design per target, ---
+  # --- then the 5 most pairwise-dissimilar among those) -----------------
+  - name: exp_find
+    kind: find_campaign
+    args:
+      prod_root: /home/mason/exdrive/rad/pdzbinder/prod
+
+  - name: exp_best
+    kind: filter_best_score
+    args:
+      in: "${exp_find.manifest}"
+      key: id
+      score_field: confidence_score
+      mode: max
+
+  - name: exp_select
+    kind: filter_diversity
+    args:
+      in: "${exp_best.manifest}"
+      chain_field: chain_domain
+      n_select: 5
+
+  - name: exp_figures
+    kind: generate_each
+    args:
+      selection: "${exp_select.manifest}"
+      script: pdz_figure.py
+
+  - name: exp_montage
+    kind: assemble
+    args:
+      images: "${exp_figures.pngs}"
+      rows: 1
+      cols: 5
+      no_scale: true
+      out: experiment_montage.png
+
+  # --- final: combine the two panels, scaling only here ------------------
+  - name: final
+    kind: assemble
+    args:
+      images:
+        - "${ref_montage.image}"
+        - "${exp_montage.image}"
+      rows: 2
+      cols: 1
+      target_width_in: 6.0
+      out: reference_vs_experiment.png
