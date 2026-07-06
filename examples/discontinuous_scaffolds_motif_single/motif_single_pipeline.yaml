@@ -1,0 +1,42 @@
+# Single close-up panel for one discontinuous-scaffolds four-island-motif
+# design (M0097_1ctt): protein cartoon (yellow), motif hot-spot atoms
+# (spheres, purple), and the reference ligand as a 50%-transparent surface
+# (blue) rather than licorice, so the spheres nested against/inside it stay
+# visible. The camera looks straight down onto the best-fit plane of the
+# motif hot-spot atoms (--orient-toward hotspot) instead of the whole-complex
+# framing the five-panel row uses (--orient-toward ligand, the default) —
+# see ../../motif_superposition_figure.py's --ligand-representation and
+# --orient-toward flags, added for this figure without changing either
+# flag's default so the five-panel pipeline keeps rendering identically.
+# The camera always pans/zooms to fit the whole reference+design complex
+# (never just the motif) so nothing shown is cropped out of the 3D render;
+# the close-up comes from a safe 2D crop to content afterward (on by
+# default — see --no-trim/--trim-pad).
+#
+# Prerequisite (produces the panel-spec JSON this pipeline's render step
+# reads):
+#   ./resolve_panel.sh
+#
+# Then, run from this directory:
+#   cd examples/discontinuous_scaffolds_motif_single && python3 ../../run_pipeline.py motif_single_pipeline.yaml
+
+out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_single
+
+steps:
+  - name: panel
+    kind: render
+    args:
+      script: motif_superposition_figure.py
+      input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_single/panel_specs/M0097_1ctt.json
+      protein_color: yellow
+      hotspot_color: purple
+      ligand_color: blue
+      ligand_representation: surface
+      ligand_transparency: 0.5
+      orient_toward: hotspot
+      zoom_buffer: 8
+      trim_pad: 20
+      sphere_scale: 0.6
+      width: 2400
+      height: 2400
+      out: M0097_1ctt_motif_single.png

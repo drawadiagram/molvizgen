@@ -125,6 +125,80 @@ pipeline here uses); `atom_name_selection` builds the PyMOL `name`-based
 selection expression from the resulting atom-name lists.
 `ligand_hotspot_figure.py` is the GENERATE step built on top of it.
 
+**`lib/rfd3_motif_select.py` is a third selection convention**, for the
+per-model design spec used by the discontinuous-scaffolds RFDiffusion3
+benchmark (`{model: {input, ligand, contig, select_fixed_atoms}}` —
+see that project's `scripts/mcsa_41-N.json`). `select_fixed_atoms` mixes
+protein motif-residue keys ("A1054" = chain + PDB resnum) and ligand
+atom-name-split keys (a resn matching a token in "ligand") in one dict;
+`split_fixed_atoms` separates them. `contig_to_chai_positions` walks the
+RFD3 contig string to map each motif residue to its 1-indexed sequence
+position in any fold generated from that contig — including a *redesign*
+descendant of it, since a redesign's contig relabels which residues anchor
+the scaffold but preserves every free-residue run-length, so the position
+arithmetic for a given original motif residue comes out the same regardless
+of how many redesign generations produced the fold being examined (see the
+discontinuous-scaffolds project's own CLAUDE.md, "Adaptive branching for
+failing models", for that state machine).
+
+**`lib/kabsch.py` complements `lib/rmsd.py`'s cealign-based alignment with
+point-correspondence alignment**: given two paired Nx3 coordinate arrays
+(no sequence/structure alignment step needed, because the correspondence is
+already known — e.g. via `contig_to_chai_positions`), `kabsch_fit` returns
+the least-squares rotation/translation. `motif_superposition_figure.py`
+(GENERATE) composes these two new modules: it Kabsch-aligns a folded
+design's motif backbone atoms onto a reference active-site structure (an
+M-CSA-style minimal extract — just the fixed motif residues and ligand, not
+a full chain, so *it* isn't cartoon-renderable), then renders the aligned
+design's full protein as cartoon, its motif's `select_fixed_atoms` as
+spheres, and the reference's ligand as licorice. When a motif residue's
+named atoms don't survive in the folded design (LigandMPNN redesigned that
+position's identity, since only RFDiffusion3's backbone generation — not
+necessarily LigandMPNN's sequence design — treats it as fixed), it falls
+back to that residue's backbone atoms so the position still reads as a hot
+spot. See `examples/discontinuous_scaffolds_motif/` for a worked pipeline,
+including the application-specific `find_best_fold.py` lookup step that
+resolves a model name to its best (lowest `motif_rmsd`) completed run across
+a campaign's `campaign_analysis.csv` files.
+
+**`motif_superposition_figure.py` also supports a close-up, single-panel
+mode** (`--ligand-representation surface` + `--orient-toward hotspot`),
+added for `examples/discontinuous_scaffolds_motif_single/` without changing
+any flag's default, so the five-panel pipeline above keeps rendering
+identically. Two PyMOL gotchas surfaced building it, both handled in
+`show_ligand()`:
+- PyMOL silently auto-flags the small, disconnected hetero groups typical of
+  an M-CSA-style minimal reference structure as `ignore` on load, which
+  zeroes their surface area with no error — `cmd.flag("ignore", ..., "clear")`
+  before `show surface` is required, or nothing renders.
+- This close in, the camera is often inside the fold's own cartoon volume,
+  so back-facing polygons are unavoidable; without `two_sided_lighting`,
+  PyMOL renders those solid black instead of shaded-through.
+
+`--orient-toward hotspot` does **not** reuse `orient_scene_vertically()`'s
+"protein long axis vertical, twist toward a target" convention (that keeps
+the *protein's* overall long axis vertical, which has nothing to do with
+the motif's own local geometry and left the interface facing an arbitrary
+direction). Instead it's `orient_look_down_on_plane()`: PCA over just the
+hot-spot atoms gives a best-fit plane (smallest-variance eigenvector = the
+plane's normal), which is rotated to face the camera (+Z) directly — i.e.
+the camera looks straight down onto the interface — with the plane's own
+largest-variance in-plane direction made vertical for a deterministic "up".
+The normal's sign is picked so the protein's bulk (its CA atoms' centroid)
+ends up behind the plane (-Z), not in front of it.
+
+**Panning happens before any trim, always on the whole complex.** The
+camera always pans/zooms to fit `reference or design` (everything actually
+shown) with `--zoom-buffer` padding — never a tighter selection like just
+the hot spot — so nothing rendered ends up cropped by the canvas edge (a
+tight zoom straight to the motif could leave the wider cartoon extending
+past the frame, which reads as the structure being cut off). Only *after*
+that safe pan/zoom and the ray-trace does `build_figure()` reuse
+`lib/imgtrim.py`'s `trim_to_content` (on by default, `--no-trim` to skip)
+to crop the rendered PNG's excess background margin — a 2D crop of a
+complete render, not a 3D camera move, so a close, content-filling
+composition can never lose part of the structure.
+
 **`find_structures_smallmol.py` mirrors an external pipeline's layout and
 state machine** (ImpressBasePipeline's `SmallMoleculeBindingPipeline` — see
 that project's own CLAUDE.md for the authoritative state machine). A

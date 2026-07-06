@@ -64,6 +64,24 @@ background margin — most visible when panels have different aspect ratios
 small pad) before tiling; both `montage_figures.py` and
 `assemble_panel_layout.py` do this by default (`--no-trim` to skip).
 
+**Point-correspondence alignment (Kabsch).** Some figures already know an
+explicit atom-to-atom correspondence between two structures — e.g. an
+RFDiffusion3 contig says reference residue (chain, resnum) is the same
+residue as sequence position N in a folded design — rather than needing
+`cealign`'s own sequence/structure alignment to find one. `lib/kabsch.py`
+computes the least-squares rotation/translation for that case, used by
+`motif_superposition_figure.py` to place a folded design's motif into a
+reference structure's coordinate frame.
+
+**RFD3 design-spec selection.** A third selection convention, alongside
+chain ids and the buried/exposed ligand atom-name split: `lib/rfd3_motif_select.py`
+reads the per-model design spec used by the discontinuous-scaffolds
+RFDiffusion3 benchmark (`{model: {input, ligand, contig, select_fixed_atoms}}`),
+splitting `select_fixed_atoms` into protein motif residues vs. ligand atoms
+and mapping each motif residue to its 1-indexed position in any fold
+generated from that contig (including redesign generations — see the
+module docstring).
+
 ## The pipeline
 
 A pipeline is a YAML file: a base output directory plus an ordered list of
@@ -130,6 +148,8 @@ its own directory (see each file's header comment for the exact command):
 | `examples/reference_experiment/` | `reference_vs_experiment.yaml` (+ its bash-wrapper twin `run_reference_vs_experiment.sh`) — two independent SELECT→GENERATE→ASSEMBLE branches (a reference directory, and a production campaign filtered to one best design per target) each reduced to a 5-panel montage, then assembled together into a single comparison figure |
 | `examples/diverse_figures/` | `run_diverse_figures.sh` — the bash-wrapper predecessor of the heatmap pipeline (FIND+FILTER+GENERATE+ASSEMBLE over one directory, no YAML) |
 | `examples/smallmol/` | `small_molecule_binder_comparison.yaml` — a left "basic problem" panel (the target ligand alone, hot-spot atoms highlighted) next to a 2x2 grid of top-pLDDT designs drawn from two campaigns (adaptive production vs. nonadaptive reference), assembled with `assemble_panel_layout` |
+| `examples/discontinuous_scaffolds_motif/` | `motif_panels_pipeline.yaml` (+ `resolve_panels.sh`/`run_motif_panels.sh`) — a 1x5 row, one discontinuous-scaffolds design per RESIDUE_ISLAND_COUNT (2-6), each panel built by `motif_superposition_figure.py`: reference ligand (licorice) with the best-passing folded design's protein (cartoon) Kabsch-aligned onto it and its motif hot-spot atoms highlighted (spheres) |
+| `examples/discontinuous_scaffolds_motif_single/` | `motif_single_pipeline.yaml` (+ `resolve_panel.sh`/`run_motif_single.sh`) — a single close-up panel for one four-island design: same cartoon+spheres as above, but the ligand as a 50%-transparent surface and the camera rotated so the motif hot spot (not the ligand) faces the viewer, via `motif_superposition_figure.py`'s `--ligand-representation surface` / `--orient-toward hotspot` / `--zoom-target motif` |
 
 ## Function reference
 
@@ -145,6 +165,7 @@ its own directory (see each file's header comment for the exact command):
 | `pdz_figure.py` | GENERATE — auto-oriented PDZ-domain/peptide complex figure (fixed chain A/B, pink/lime-green) |
 | `generate_figure.py` | GENERATE — the same auto-oriented figure, generalized to any chain ids/colors |
 | `ligand_hotspot_figure.py` | GENERATE — render a target ligand alone, split into hot-spot (red) vs. rest (yellow) atoms per an RFDiffusion3 binder-design spec |
+| `motif_superposition_figure.py` | GENERATE — render a folded design's protein (cartoon) and its RFD3 motif hot-spot atoms (spheres), Kabsch-aligned onto a reference active-site structure whose ligand is drawn as licorice (default) or a transparent surface; camera can face the ligand (default) or the hot spot itself |
 | `montage_figures.py` | ASSEMBLE — tile images into a grid, optionally rescale to a target width |
 | `assemble_panel_layout.py` | ASSEMBLE — a wide left panel next to a rows x cols grid of right-hand panels, a layout `montage_figures.py`'s uniform grid can't express |
 | `run_pipeline.py` | Generic runner that dispatches a YAML pipeline's steps to the scripts above |
@@ -152,8 +173,10 @@ its own directory (see each file's header comment for the exact command):
 | `rmsd_heatmap_notebook.py` | Interactive marimo notebook: documents the YAML format and runs find → filter_diversity → plot_rmsd_heatmap live |
 | `lib/manifest.py` | The candidate-manifest read/write contract shared by every step |
 | `lib/rmsd.py` | PyMOL-backed chain-CA RMSD core: load structures, compute the pairwise matrix, greedy max-min selection |
+| `lib/kabsch.py` | Point-correspondence rigid-body superposition (Kabsch algorithm) for two paired Nx3 coordinate arrays |
 | `lib/pdb_normalize.py` | Detect and rewrite non-standard multi-character PDB chain ids |
 | `lib/ligand_select.py` | Atom-name-based ligand selection from an RFDiffusion3 binder-design spec, for splitting one hetero-residue into sub-groups |
+| `lib/rfd3_motif_select.py` | RFD3 structured design-spec selection: contig -> chai-position mapping, protein-motif-residue vs. ligand atom-name split |
 | `lib/imgtrim.py` | Crop a rendered figure to its content bounding box before tiling into a montage |
 
 ## Requirements
