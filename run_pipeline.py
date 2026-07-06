@@ -213,6 +213,48 @@ def handle_render(name, args, base_out_dir):
     return {"image": image}
 
 
+def handle_render_pair(name, args, base_out_dir):
+    """GENERATE call for a script that renders two coupled panels from one
+    shared alignment in a single PyMOL session (aligned_pair_figure.py)
+    rather than a single (input, output) pair (handle_render) or a
+    per-candidate loop (handle_generate_each)."""
+    out_dir = step_out_dir(base_out_dir, name)
+    reference_image = os.path.join(out_dir, args.get("out_reference", "reference.png"))
+    design_image = os.path.join(out_dir, args.get("out_design", "design.png"))
+    cmd = [sys.executable, script_path(args["script"])]
+    cmd += [args["reference"], args["design"], reference_image, design_image]
+    cmd += flags_from_args(args, skip=("script", "reference", "design", "out_reference", "out_design"))
+    run(cmd)
+    return {"reference_image": reference_image, "design_image": design_image}
+
+
+def handle_render_overlay(name, args, base_out_dir):
+    """GENERATE call for a script that overlays two structures into a single
+    combined panel from a shared alignment (aligned_overlay_figure.py) —
+    two positional inputs (reference, design) and one primary output, unlike
+    handle_render (one input, one output) or handle_render_pair (two
+    inputs, two outputs). Also resolves the optional --out-reference/
+    --out-design solo-view exports every overlay-style script should offer
+    (see aligned_overlay_figure.py) into this step's out_dir, declaring them
+    as reference_image/design_image when requested."""
+    out_dir = step_out_dir(base_out_dir, name)
+    image = os.path.join(out_dir, args.get("out", f"{name}.png"))
+    skip = ["script", "reference", "design", "out", "out_reference", "out_design"]
+    cmd = [sys.executable, script_path(args["script"])]
+    cmd += [args["reference"], args["design"], image]
+
+    outputs = {"image": image}
+    for key, field in (("out_reference", "reference_image"), ("out_design", "design_image")):
+        if key in args:
+            path = os.path.join(out_dir, args[key])
+            cmd += [flag(key), path]
+            outputs[field] = path
+
+    cmd += flags_from_args(args, skip=skip)
+    run(cmd)
+    return outputs
+
+
 def handle_assemble_panel_layout(name, args, base_out_dir):
     out_dir = step_out_dir(base_out_dir, name)
     image = os.path.join(out_dir, args.get("out", "panel_layout.png"))
@@ -235,6 +277,8 @@ HANDLERS = {
     "plot_heatmap": handle_plot_heatmap,
     "generate_each": handle_generate_each,
     "render": handle_render,
+    "render_pair": handle_render_pair,
+    "render_overlay": handle_render_overlay,
     "assemble": handle_assemble,
     "assemble_panel_layout": handle_assemble_panel_layout,
 }

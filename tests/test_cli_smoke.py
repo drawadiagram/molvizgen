@@ -77,6 +77,52 @@ def test_pdz_figure_renders_a_nonempty_png(tmp_path, complex_ab_pdb):
     assert img.size == (200, 250)
 
 
+def test_aligned_pair_figure_renders_two_nonempty_pngs(tmp_path, complex_ab_pdb, complex_cd_pdb):
+    out_reference = tmp_path / "reference.png"
+    out_design = tmp_path / "design.png"
+    result = run_script(
+        "aligned_pair_figure.py", complex_cd_pdb, complex_ab_pdb, str(out_reference), str(out_design),
+        "--reference-chain-domain", "C", "--reference-chain-peptide", "D",
+        "--design-chain-domain", "A", "--design-chain-peptide", "B",
+        "--width", "200", "--height", "250",
+    )
+    assert result.returncode == 0, result.stderr
+    assert out_reference.exists()
+    assert out_design.exists()
+    assert Image.open(out_reference).size == (200, 250)
+    assert Image.open(out_design).size == (200, 250)
+
+
+def test_aligned_overlay_figure_renders_a_nonempty_png(tmp_path, complex_ab_pdb, complex_cd_pdb):
+    out_png = tmp_path / "overlay.png"
+    result = run_script(
+        "aligned_overlay_figure.py", complex_cd_pdb, complex_ab_pdb, str(out_png),
+        "--reference-chain-domain", "C", "--reference-chain-peptide", "D",
+        "--design-chain-domain", "A", "--design-chain-peptide", "B",
+        "--width", "200", "--height", "250",
+    )
+    assert result.returncode == 0, result.stderr
+    assert out_png.exists()
+    assert Image.open(out_png).size == (200, 250)
+
+
+def test_aligned_overlay_figure_also_writes_solo_views(tmp_path, complex_ab_pdb, complex_cd_pdb):
+    out_png = tmp_path / "overlay.png"
+    out_reference = tmp_path / "reference_alone.png"
+    out_design = tmp_path / "design_alone.png"
+    result = run_script(
+        "aligned_overlay_figure.py", complex_cd_pdb, complex_ab_pdb, str(out_png),
+        "--reference-chain-domain", "C", "--reference-chain-peptide", "D",
+        "--design-chain-domain", "A", "--design-chain-peptide", "B",
+        "--out-reference", str(out_reference), "--out-design", str(out_design),
+        "--width", "200", "--height", "250",
+    )
+    assert result.returncode == 0, result.stderr
+    assert out_png.exists()
+    assert out_reference.exists()
+    assert out_design.exists()
+
+
 def test_montage_figures_tiles_two_pngs(tmp_path):
     a = tmp_path / "a.png"
     b = tmp_path / "b.png"

@@ -39,6 +39,31 @@ def ray_trace_and_save(out_png, width, height, dpi):
     cmd.png(out_png, dpi=dpi)
 
 
+def render_solo(obj, other_objs, out_png, zoom_buffer, width, height, dpi, bg):
+    """Ray-trace `obj` alone out of a PyMOL session that also holds
+    `other_objs` (e.g. a Kabsch-aligned reference/design pair sharing one
+    coordinate frame): disable every name in `other_objs` so they don't
+    appear in this render, zoom to fit just `obj`, ray-trace, then re-enable
+    them so the session's visibility state doesn't leak into the next
+    render this script call makes (a combined/overlaid view, or the other
+    object's own solo view).
+
+    Any figure script that renders a combined/overlaid view of multiple
+    objects should offer this as an option alongside it (see
+    aligned_overlay_figure.py's --out-reference/--out-design and
+    aligned_pair_figure.py, which is built entirely out of two calls to
+    this) -- a reader comparing two structures often wants each one
+    unobstructed, not just the overlay."""
+    for name in other_objs:
+        cmd.disable(name)
+    cmd.enable(obj)
+    cmd.bg_color(bg)
+    cmd.zoom(obj, buffer=zoom_buffer)
+    ray_trace_and_save(out_png, width, height, dpi)
+    for name in other_objs:
+        cmd.enable(name)
+
+
 def add_render_flags(parser, default_width=1800, default_height=2400, default_dpi=300, default_bg="white"):
     """Add the --width/--height/--dpi/--bg flags every GENERATE figure
     script exposes identically to an existing argparse.ArgumentParser."""

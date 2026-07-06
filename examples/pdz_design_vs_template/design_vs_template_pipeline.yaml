@@ -1,0 +1,83 @@
+# Two views of the same comparison for the pdzbinder production campaign's
+# single highest-confidence design vs. the template structure it was
+# generated from, both built on the same C-terminal peptide-backbone Kabsch
+# alignment (../../lib/peptide_align.py, this repo's fourth
+# selection/alignment convention): the template panel's peptide backbone is
+# Kabsch-fit onto the design panel's peptide's last 4 residues (the conserved
+# PDZ "EPEA" C-terminal motif every target peptide in this campaign shares),
+# so the same motif lands in the same place in both structures even though
+# the template's domain sequence and peptide length can differ from the
+# design's.
+#
+#   - `panel_4k6y` (render_pair, ../../aligned_pair_figure.py): two separate
+#     panels (domain cyan cartoon, peptide green cartoon in both), tiled
+#     side by side by the `row` step.
+#   - `overlay_4k6y` (render_overlay, ../../aligned_overlay_figure.py): one
+#     combined panel with both structures superposed -- four colors tell
+#     the four chains apart (template domain cyan, template peptide green,
+#     design domain red, design peptide purple) -- plus, since an overlay is
+#     easy to misread when the two cartoons occlude each other, the same
+#     step also exports each structure's own solo, unobstructed view
+#     (`out_reference`/`out_design` -- every overlay-style figure script
+#     should offer this, see lib/pymol_scene.py's `render_solo`).
+#
+# Prerequisite (produces the resolved candidates_all.json/best.json and
+# template_specs/<id>.json this pipeline's render_pair step reads -- see
+# resolve_template.py's docstring for why this is a separate,
+# application-specific lookup step rather than a molvizgen FIND kind):
+#   ./resolve_template.sh
+#
+# Then, run from this directory:
+#   cd examples/pdz_design_vs_template && python3 ../../run_pipeline.py design_vs_template_pipeline.yaml
+#
+# As of the last resolve_template.sh run, the winning candidate is "4k6y"
+# (group p1-p16, campaign p5_sub1_sub2, confidence_score 0.9719) -- re-run
+# resolve_template.sh and update the paths below if the production campaign
+# changes (more p*-p* groups added, etc).
+
+out_dir: /home/mason/exdrive/rad/pdzbinder/prod/molviz_design_vs_template
+
+steps:
+  - name: panel_4k6y
+    kind: render_pair
+    args:
+      script: aligned_pair_figure.py
+      reference: /home/mason/exdrive/rad/pdzbinder/prod/p1-p16/protein_binding/prod_in/p5_in/4k6y.pdb
+      design: /home/mason/exdrive/rad/pdzbinder/prod/p1-p16/protein_binding/af_pipeline_outputs_multi/p5_sub1_sub2/af/prediction/dimer_models/4k6y/boltz_results_4k6y/predictions/4k6y/4k6y_model_0.pdb
+      domain_color: cyan
+      peptide_color: green
+      align_length: 4
+      width: 1800
+      height: 2400
+      out_reference: template_4k6y.png
+      out_design: design_4k6y.png
+
+  - name: row
+    kind: assemble
+    args:
+      images:
+        - "${panel_4k6y.reference_image}"
+        - "${panel_4k6y.design_image}"
+      rows: 1
+      cols: 2
+      padding: 30
+      trim_pad: 15
+      target_width_in: 8
+      out: design_vs_template_row.png
+
+  - name: overlay_4k6y
+    kind: render_overlay
+    args:
+      script: aligned_overlay_figure.py
+      reference: /home/mason/exdrive/rad/pdzbinder/prod/p1-p16/protein_binding/prod_in/p5_in/4k6y.pdb
+      design: /home/mason/exdrive/rad/pdzbinder/prod/p1-p16/protein_binding/af_pipeline_outputs_multi/p5_sub1_sub2/af/prediction/dimer_models/4k6y/boltz_results_4k6y/predictions/4k6y/4k6y_model_0.pdb
+      reference_domain_color: cyan
+      reference_peptide_color: green
+      design_domain_color: red
+      design_peptide_color: purple
+      align_length: 4
+      width: 1800
+      height: 2400
+      out: design_vs_template_overlay.png
+      out_reference: design_vs_template_overlay_reference_alone.png
+      out_design: design_vs_template_overlay_design_alone.png

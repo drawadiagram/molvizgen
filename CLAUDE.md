@@ -196,6 +196,50 @@ including the application-specific `find_best_fold.py` lookup step that
 resolves a model name to its best (lowest `motif_rmsd`) completed run across
 a campaign's `campaign_analysis.csv` files.
 
+**`lib/peptide_align.py` is a fourth selection/alignment convention**,
+alongside chain ids, `lib/ligand_select.py`'s atom-name ligand split, and
+`lib/rfd3_motif_select.py`'s contig-based motif mapping: rigid-body Kabsch
+superposition of one peptide chain's C-terminal residues onto another's,
+matched purely by position (N -> C order) rather than residue identity or an
+external contig map — `fit_cterminal_backbone` takes the last `n_residues`
+of each chain (`cterminal_resi`) and Kabsch-fits their backbone (N, CA, C,
+O) atoms (`backbone_coords`). This is the right tool when a short peptide
+fragment (e.g. a PDZ domain's minimal conserved C-terminal binding motif,
+used as a design template) and a longer peptide produced downstream share
+that same C-terminal motif but otherwise differ in length or sequence, so no
+sequence/structure alignment (`lib/rmsd.py`'s cealign) or explicit
+correspondence map is needed. `aligned_pair_figure.py` (GENERATE) is built on
+top of it: unlike `motif_superposition_figure.py`'s single overlaid panel, it
+renders **two separate panels** from one PyMOL session — a `design` complex,
+oriented with the standard `orient_long_axis_vertical` convention, and a
+`reference` complex (e.g. the template structure a design was generated
+from), whose coordinates are rigidly Kabsch-fit so its peptide's C-terminal
+motif lands on `design`'s already-oriented peptide's equivalent residues.
+Because orientation is baked into atom coordinates rather than being a
+camera move (see below), and both panels are ray-traced from PyMOL's
+untouched default view, the shared motif lands in the same place in both
+renders even though the rest of each structure (domain sequence, peptide
+length) differs freely — the two PNGs are meant to be tiled side by side
+with `montage_figures.py` (a new `render_pair` `run_pipeline.py` step kind,
+alongside `render`/`generate_each`, dispatches a script with two declared
+outputs instead of one). The shared "load both objects, orient `design`,
+Kabsch-fit `reference` into its frame" recipe lives in
+`lib/peptide_align.py`'s `load_and_align_pair`, not duplicated per script.
+`aligned_overlay_figure.py` is the same alignment rendered the other way —
+**one** panel with both structures superposed (four independent colors:
+reference domain/peptide, design domain/peptide, default cyan/green/red/purple)
+rather than two tiled panels, for reading the domain and peptide change as a
+direct overlay; it's a new `render_overlay` step kind (two inputs, one
+output, unlike `render`'s one-input/one-output or `render_pair`'s
+two-input/two-output). See `examples/pdz_design_vs_template/` for a worked
+pipeline over the pdzbinder production campaign producing both views,
+including the application-specific `resolve_template.py` lookup step that
+maps a `find_structures_campaign.py` candidate's `group`/`campaign_dir` to
+the *base* design's `prod_in/<base>_in/<id>.pdb` template (`campaign_base`,
+a new `find_structures_campaign.py` helper that strips any `_subN`
+iterative-refinement suffix — the specific stage that produced the winning
+prediction is not, in general, the design lineage's actual starting point).
+
 **`motif_superposition_figure.py` also supports a close-up, single-panel
 mode** (`--ligand-representation surface` + `--orient-toward hotspot`),
 added for `examples/discontinuous_scaffolds_motif_single/` without changing

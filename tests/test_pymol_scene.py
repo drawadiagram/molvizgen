@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from pymol_scene import add_render_flags, apply_material_aoshiny, cmd, ray_trace_and_save
+from pymol_scene import add_render_flags, apply_material_aoshiny, cmd, ray_trace_and_save, render_solo
 
 
 def test_apply_material_aoshiny_sets_expected_pymol_settings():
@@ -51,3 +51,24 @@ def test_ray_trace_and_save_writes_a_nonempty_png(tmp_path, domain1_pdb):
 
     assert out_png.exists()
     assert out_png.stat().st_size > 0
+
+
+def test_render_solo_writes_png_and_restores_visibility(tmp_path, domain1_pdb, domain2_pdb):
+    obj_a = "scene_test_solo_a"
+    obj_b = "scene_test_solo_b"
+    cmd.load(domain1_pdb, obj_a)
+    cmd.load(domain2_pdb, obj_b)
+    cmd.show("cartoon", f"{obj_a} or {obj_b}")
+    out_png = tmp_path / "solo.png"
+
+    render_solo(obj_a, [obj_b], str(out_png), zoom_buffer=5.0, width=200, height=200, dpi=72, bg="white")
+
+    assert out_png.exists()
+    assert out_png.stat().st_size > 0
+    # both objects should be enabled again afterward, not left disabled.
+    enabled = cmd.get_names("objects", enabled_only=1)
+    assert obj_a in enabled
+    assert obj_b in enabled
+
+    cmd.delete(obj_a)
+    cmd.delete(obj_b)

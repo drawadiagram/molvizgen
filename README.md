@@ -117,6 +117,25 @@ and mapping each motif residue to its 1-indexed position in any fold
 generated from that contig (including redesign generations — see the
 module docstring).
 
+**C-terminal peptide-backbone alignment.** A fourth selection/alignment
+convention: `lib/peptide_align.py` Kabsch-superposes one peptide chain's
+last N residues onto another's, matched purely by position (N -> C order)
+rather than residue identity or an external contig map — the right tool
+when a short peptide fragment (e.g. a PDZ domain's conserved C-terminal
+binding motif, used as a design template) and a longer peptide produced
+downstream share that same C-terminal motif but otherwise differ freely in
+length or sequence. `lib/peptide_align.py`'s `load_and_align_pair` bundles
+the shared recipe both figure scripts built on it need: load a `design`
+complex oriented with the standard long-axis-vertical convention, and a
+`reference` complex whose coordinates are rigidly transformed so its
+peptide's C-terminal motif lands on the design's. `aligned_pair_figure.py`
+renders that pair as **two** separate, still-comparable panels (meant to be
+tiled side by side); `aligned_overlay_figure.py` renders the identical
+alignment as **one** combined, superposed panel instead — closer to
+`motif_superposition_figure.py`'s single-panel convention, but comparing two
+full complexes (four independent colors) rather than a minimal reference
+extract's ligand plus a design's motif spheres.
+
 ## The pipeline
 
 A pipeline is a YAML file: a base output directory plus an ordered list of
@@ -176,6 +195,8 @@ subdirectory, `out_dir/<step name>/`.
 | `plot_heatmap` | PLOT: render a pairwise RMSD matrix as a heatmap | `matrix` (a saved `rmsd_matrix.csv`) **or** `in` + `chain_field` (compute fresh), `title`, `dpi`, `annotate` | `image` |
 | `generate_each` | GENERATE: render one figure per candidate in a manifest | `selection`, `script` (default `pdz_figure.py`), plus any flags to forward | `pngs`, `out_dir` |
 | `render` | GENERATE: one-off render for a script that takes a single (input, output) pair instead of looping over a manifest (e.g. `ligand_hotspot_figure.py`) | `script`, `input`, `out`, plus any flags to forward | `image` |
+| `render_pair` | GENERATE: one-off render for a script that produces two coupled panels from one shared alignment in a single PyMOL session (e.g. `aligned_pair_figure.py`) instead of one output | `script`, `reference`, `design`, `out_reference`, `out_design`, plus any flags to forward | `reference_image`, `design_image` |
+| `render_overlay` | GENERATE: one-off render for a script that takes two structures and produces one combined, superposed panel (e.g. `aligned_overlay_figure.py`) | `script`, `reference`, `design`, `out`, plus any flags to forward | `image` |
 | `assemble` | ASSEMBLE: tile images into a montage, optionally rescale | `images`, `rows`, `cols`, `out`, `target_width_in`, `dpi`, `padding`, `bg`, `no_scale` | `image` |
 | `assemble_panel_layout` | ASSEMBLE: a wide "problem" panel next to a rows x cols grid of "design" panels — a layout a uniform grid can't express | `left`, `right`, `right_rows`, `right_cols`, `left_width_fraction`, `out`, `target_width_in`, `dpi`, `padding`, `bg`, `no_scale` | `image` |
 
@@ -191,6 +212,7 @@ its own directory (see each file's header comment for the exact command):
 | `examples/smallmol/` | `small_molecule_binder_comparison.yaml` — a left "basic problem" panel (the target ligand alone, hot-spot atoms highlighted) next to a 2x2 grid of top-pLDDT designs drawn from two campaigns (adaptive production vs. nonadaptive reference), assembled with `assemble_panel_layout` |
 | `examples/discontinuous_scaffolds_motif/` | `motif_panels_pipeline.yaml` (+ `resolve_panels.sh`/`run_motif_panels.sh`) — a 1x5 row, one discontinuous-scaffolds design per RESIDUE_ISLAND_COUNT (2-6), each panel built by `motif_superposition_figure.py`: reference ligand (licorice) with the best-passing folded design's protein (cartoon) Kabsch-aligned onto it and its motif hot-spot atoms highlighted (spheres) |
 | `examples/discontinuous_scaffolds_motif_single/` | `motif_single_pipeline.yaml` (+ `resolve_panel.sh`/`run_motif_single.sh`) — a single close-up panel for one four-island design: same cartoon+spheres as above, but the ligand as a 50%-transparent surface and the camera rotated so the motif hot spot (not the ligand) faces the viewer, via `motif_superposition_figure.py`'s `--ligand-representation surface` / `--orient-toward hotspot` / `--zoom-target motif` |
+| `examples/pdz_design_vs_template/` | `design_vs_template_pipeline.yaml` (+ `resolve_template.py`/`resolve_template.sh`/`run_design_vs_template.sh`) — two views of the pdzbinder production campaign's single highest-confidence design vs. its origin template, both built on the same C-terminal peptide-backbone Kabsch fit (`lib/peptide_align.py`): a two-panel row (`aligned_pair_figure.py`, domain cyan / peptide green in both panels) and a single superposed overlay (`aligned_overlay_figure.py`, template domain cyan / template peptide green / design domain red / design peptide purple) |
 
 ## Function reference
 
@@ -207,6 +229,8 @@ its own directory (see each file's header comment for the exact command):
 | `generate_figure.py` | GENERATE — the same auto-oriented figure, generalized to any chain ids/colors |
 | `ligand_hotspot_figure.py` | GENERATE — render a target ligand alone, split into hot-spot (red) vs. rest (yellow) atoms per an RFDiffusion3 binder-design spec |
 | `motif_superposition_figure.py` | GENERATE — render a folded design's protein (cartoon) and its RFD3 motif hot-spot atoms (spheres), Kabsch-aligned onto a reference active-site structure whose ligand is drawn as licorice (default) or a transparent surface; camera can face the ligand (default) or the hot spot itself |
+| `aligned_pair_figure.py` | GENERATE — render a design-template ("reference") complex and the resulting ("design") complex as two separate cartoon panels (domain + peptide, one color each) sharing a coordinate frame, the reference's peptide Kabsch-fit onto the design's peptide's C-terminal residues |
+| `aligned_overlay_figure.py` | GENERATE — the same reference/design C-terminal peptide-backbone alignment as `aligned_pair_figure.py`, rendered as one combined panel with both structures superposed (four independent cartoon colors: reference domain/peptide, design domain/peptide) |
 | `montage_figures.py` | ASSEMBLE — tile images into a grid, optionally rescale to a target width |
 | `assemble_panel_layout.py` | ASSEMBLE — a wide left panel next to a rows x cols grid of right-hand panels, a layout `montage_figures.py`'s uniform grid can't express |
 | `run_pipeline.py` | Generic runner that dispatches a YAML pipeline's steps to the scripts above |
@@ -218,6 +242,7 @@ its own directory (see each file's header comment for the exact command):
 | `lib/pdb_normalize.py` | Detect and rewrite non-standard multi-character PDB chain ids |
 | `lib/ligand_select.py` | Atom-name-based ligand selection from an RFDiffusion3 binder-design spec, for splitting one hetero-residue into sub-groups |
 | `lib/rfd3_motif_select.py` | RFD3 structured design-spec selection: contig -> chai-position mapping, protein-motif-residue vs. ligand atom-name split |
+| `lib/peptide_align.py` | C-terminal peptide-backbone Kabsch alignment: match one chain's last N residues to another's by position (N -> C order), independent of residue identity or an external contig map |
 | `lib/design_spec.py` | Atom-name-CSV parsing and spec-relative-path resolution shared by `lib/ligand_select.py` and `lib/rfd3_motif_select.py` |
 | `lib/imgtrim.py` | Crop a rendered figure to its content bounding box before tiling into a montage |
 | `lib/montage.py` | Grid-tiling (`build_montage`) and target-width scaling (`scale_to_width`) shared by `montage_figures.py` and `assemble_panel_layout.py` |

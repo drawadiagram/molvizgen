@@ -68,6 +68,18 @@ def campaign_stage(campaign_dir_name, target_id):
     return rest.lstrip("_")
 
 
+def campaign_base(campaign_dir_name):
+    """Turn 'p15_sub1_sub2' into the base design id 'p15' -- `campaign_stage`'s
+    complement, stripping any iterative-refinement suffix rather than
+    returning it. This is the id whose prod_in/<base>_in/ template seeded the
+    *entire* design lineage (used e.g. by
+    examples/pdz_design_vs_template/resolve_template.py to find the
+    structure a design was originally generated from, as opposed to whatever
+    input a later refinement round happened to start from)."""
+    prefix_match = re.match(r"^p\d+", campaign_dir_name)
+    return prefix_match.group() if prefix_match else campaign_dir_name
+
+
 def load_confidence(pdb_path, target_id):
     conf_path = os.path.join(os.path.dirname(pdb_path), f"confidence_{target_id}_model_0.json")
     if not os.path.exists(conf_path):
