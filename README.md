@@ -1,13 +1,42 @@
 # molvizgen
 
-Command-line tools for screening a set of protein structure (PDB) files down
-to a representative subset and turning them into figures: a
-**SELECT → GENERATE → ASSEMBLE** pipeline built from small, composable
-scripts, driven either directly or by a YAML pipeline description.
+Command-line tools for taking a set of protein structure (PDB) files through
+a **FIND → FILTER → GENERATE → ASSEMBLE** pipeline (with an optional **PLOT**
+step for RMSD heatmaps): enumerate candidate structures, filter them down by
+score or structural diversity, render publication-style PyMOL figures, and
+assemble the results into montages — built from small, composable scripts,
+driven either directly or by a YAML pipeline description.
 
-molvizgen is a *tool* repo, not a *data* repo — every script takes a
-directory (or a manifest) of PDB files as input via a flag; there are no
-structures checked in here.
+## Usage
+
+```bash
+# FIND: enumerate a directory of PDB files into a manifest
+python3 find_structures_flat.py --dir /path/to/pdbs --chain-domain A --chain-peptide B --out candidates.json
+
+# FILTER: keep a diverse, maximally-dissimilar subset (by chain-CA RMSD)
+python3 filter_diversity.py --in candidates.json --chain-field chain_domain --n-select 5 --out-dir analysis
+
+# FILTER: keep only the best-scoring candidate per group
+python3 filter_best_score.py --in candidates.json --key target --score-field confidence_score --mode max --out best.json
+
+# FILTER: keep the top N candidates overall, no grouping
+python3 filter_top_n.py --in candidates.json --score-field af2_plddt --n 10 --mode max --out top10.json
+
+# PLOT: render a saved RMSD matrix as a heatmap
+python3 plot_rmsd_heatmap.py --matrix analysis/rmsd_matrix.csv --title "Pairwise Cα RMSD" --out heatmap.png
+
+# GENERATE: render one auto-oriented figure for a single structure
+python3 pdz_figure.py my_structure.pdb figures/my_structure.png
+
+# ASSEMBLE: tile rendered figures into a montage
+python3 montage_figures.py figures/*.png --rows 2 --cols 3 --out montage.png
+
+# Or run an entire FIND -> FILTER -> GENERATE -> ASSEMBLE pipeline from one YAML file
+cd examples/heatmap && python3 ../../run_pipeline.py rmsd_heatmap_pipeline.yaml
+
+# Or explore the pipeline interactively in a notebook
+marimo edit rmsd_heatmap_notebook.py
+```
 
 ## Concepts
 
@@ -85,7 +114,13 @@ module docstring).
 ## The pipeline
 
 A pipeline is a YAML file: a base output directory plus an ordered list of
-named steps, each with a `kind` and `args`:
+named steps, each with a `kind` and `args`. Every `kind` belongs to one of
+five stages: **FIND** (enumerate a directory or campaign layout into a
+manifest), **FILTER** (reduce a manifest by score or structural diversity),
+**PLOT** (render a saved RMSD matrix as a heatmap), **GENERATE** (render
+PyMOL figures, per-candidate or one-off), and **ASSEMBLE** (tile rendered
+figures into a montage or panel layout) — see [Step kinds](#step-kinds) below
+for the full list. The example below chains FIND → FILTER → PLOT:
 
 ```yaml
 out_dir: analysis/rmsd_heatmap_demo
@@ -145,7 +180,7 @@ its own directory (see each file's header comment for the exact command):
 | Directory | Contents |
 |---|---|
 | `examples/heatmap/` | `rmsd_heatmap_pipeline.yaml` — the diversity+heatmap demo above |
-| `examples/reference_experiment/` | `reference_vs_experiment.yaml` (+ its bash-wrapper twin `run_reference_vs_experiment.sh`) — two independent SELECT→GENERATE→ASSEMBLE branches (a reference directory, and a production campaign filtered to one best design per target) each reduced to a 5-panel montage, then assembled together into a single comparison figure |
+| `examples/reference_experiment/` | `reference_vs_experiment.yaml` (+ its bash-wrapper twin `run_reference_vs_experiment.sh`) — two independent FIND→FILTER→GENERATE→ASSEMBLE branches (a reference directory, and a production campaign filtered to one best design per target) each reduced to a 5-panel montage, then assembled together into a single comparison figure |
 | `examples/diverse_figures/` | `run_diverse_figures.sh` — the bash-wrapper predecessor of the heatmap pipeline (FIND+FILTER+GENERATE+ASSEMBLE over one directory, no YAML) |
 | `examples/smallmol/` | `small_molecule_binder_comparison.yaml` — a left "basic problem" panel (the target ligand alone, hot-spot atoms highlighted) next to a 2x2 grid of top-pLDDT designs drawn from two campaigns (adaptive production vs. nonadaptive reference), assembled with `assemble_panel_layout` |
 | `examples/discontinuous_scaffolds_motif/` | `motif_panels_pipeline.yaml` (+ `resolve_panels.sh`/`run_motif_panels.sh`) — a 1x5 row, one discontinuous-scaffolds design per RESIDUE_ISLAND_COUNT (2-6), each panel built by `motif_superposition_figure.py`: reference ligand (licorice) with the best-passing folded design's protein (cartoon) Kabsch-aligned onto it and its motif hot-spot atoms highlighted (spheres) |
@@ -185,18 +220,3 @@ A Python 3 environment with PyMOL's Python API importable (`import pymol`),
 plus `numpy`, `PyYAML`, `Pillow`, and `matplotlib`. `marimo` is only needed
 to run the notebook. There's no dependency manifest — these must already be
 on the interpreter's `PATH`/`site-packages`.
-
-## Usage
-
-```bash
-# Run one step directly
-python3 find_structures_flat.py --dir /path/to/pdbs --out candidates.json
-python3 filter_diversity.py --in candidates.json --out-dir analysis
-python3 plot_rmsd_heatmap.py --matrix analysis/rmsd_matrix.csv --out heatmap.png
-
-# Or run a whole pipeline (see examples/<name>/ for worked configs)
-cd examples/heatmap && python3 ../../run_pipeline.py rmsd_heatmap_pipeline.yaml
-
-# Or explore interactively
-marimo edit rmsd_heatmap_notebook.py
-```
