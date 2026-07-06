@@ -48,27 +48,6 @@ reordered one; a GENERATE step reads a manifest and produces images. Because
 every candidate carries its own absolute path and metadata, no step ever has
 to reconstruct a file location from an id and a directory convention.
 
-**Pairwise RMSD diversity.** Given a set of structures that are all "the same
-kind of thing" (e.g. the same domain solved/predicted many times), the
-useful question is usually not "what's the single best one" but "give me a
-handful that are maximally *different* from each other" — a diverse panel
-for a figure, or a diverse benchmark set. molvizgen answers this by:
-1. aligning every pair of structures on a chosen chain's Cα atoms (PyMOL
-   `cealign`) and recording the RMSD, producing a full symmetric matrix;
-2. greedily selecting a subset that maximizes the *minimum* pairwise RMSD
-   within it (farthest-point/max-min selection) — seed with the single most
-   dissimilar pair, then repeatedly add whichever remaining structure is
-   farthest from everything already picked.
-
-**Chain-id normalization.** The PDB format reserves a single fixed column for
-chain ID. Some upstream pipelines (observed: Boltz) instead write
-multi-character tokens there as whitespace-separated fields (`"pdz"`/`"pep"`).
-Naive fixed-column readers — PyMOL included — silently truncate both to the
-same single letter, corrupting chain-based selection without raising an
-error. molvizgen detects this up front and rewrites affected files into
-standards-compliant single-character-chain copies before anything downstream
-touches them.
-
 **Consistent framing.** Figures are rendered with an automatic camera: PCA
 the domain chain's Cα atoms to find its long axis, rotate that to vertical,
 then twist around that axis so the peptide/ligand chain faces the camera.
@@ -83,13 +62,6 @@ scene-transform functions) and the shared PyMOL rendering boilerplate
 live in `lib/`, so every GENERATE script is a thin, domain-specific layer over
 the same shared core rather than reimplementing it.
 
-**Atom-name selection.** Chain ids select whole chains; some figures need to
-split a *single* hetero-residue into sub-groups instead (e.g. the hot-spot
-atoms an RFDiffusion3 binder-design spec targets vs. the rest of the
-ligand). `lib/ligand_select.py` reads that split from an
-`*_binder_design.json` spec and builds a PyMOL `name`-based selection
-expression, complementing the chain-id convention used elsewhere.
-
 **Content-trimmed montages.** Every GENERATE script ray-traces onto a
 fixed-size canvas with its own zoom buffer, so raw PNGs carry inconsistent
 background margin — most visible when panels have different aspect ratios
@@ -98,43 +70,6 @@ background margin — most visible when panels have different aspect ratios
 small pad) before tiling; `lib/montage.py`'s `build_montage` does this by
 default (`--no-trim` to skip), shared by both `montage_figures.py` and
 `assemble_panel_layout.py` rather than each carrying its own tiling logic.
-
-**Point-correspondence alignment (Kabsch).** Some figures already know an
-explicit atom-to-atom correspondence between two structures — e.g. an
-RFDiffusion3 contig says reference residue (chain, resnum) is the same
-residue as sequence position N in a folded design — rather than needing
-`cealign`'s own sequence/structure alignment to find one. `lib/kabsch.py`
-computes the least-squares rotation/translation for that case, used by
-`motif_superposition_figure.py` to place a folded design's motif into a
-reference structure's coordinate frame.
-
-**RFD3 design-spec selection.** A third selection convention, alongside
-chain ids and the buried/exposed ligand atom-name split: `lib/rfd3_motif_select.py`
-reads the per-model design spec used by the discontinuous-scaffolds
-RFDiffusion3 benchmark (`{model: {input, ligand, contig, select_fixed_atoms}}`),
-splitting `select_fixed_atoms` into protein motif residues vs. ligand atoms
-and mapping each motif residue to its 1-indexed position in any fold
-generated from that contig (including redesign generations — see the
-module docstring).
-
-**C-terminal peptide-backbone alignment.** A fourth selection/alignment
-convention: `lib/peptide_align.py` Kabsch-superposes one peptide chain's
-last N residues onto another's, matched purely by position (N -> C order)
-rather than residue identity or an external contig map — the right tool
-when a short peptide fragment (e.g. a PDZ domain's conserved C-terminal
-binding motif, used as a design template) and a longer peptide produced
-downstream share that same C-terminal motif but otherwise differ freely in
-length or sequence. `lib/peptide_align.py`'s `load_and_align_pair` bundles
-the shared recipe both figure scripts built on it need: load a `design`
-complex oriented with the standard long-axis-vertical convention, and a
-`reference` complex whose coordinates are rigidly transformed so its
-peptide's C-terminal motif lands on the design's. `aligned_pair_figure.py`
-renders that pair as **two** separate, still-comparable panels (meant to be
-tiled side by side); `aligned_overlay_figure.py` renders the identical
-alignment as **one** combined, superposed panel instead — closer to
-`motif_superposition_figure.py`'s single-panel convention, but comparing two
-full complexes (four independent colors) rather than a minimal reference
-extract's ligand plus a design's motif spheres.
 
 ## The pipeline
 
