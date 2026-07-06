@@ -1,0 +1,109 @@
+# Five-panel small-molecule-binder figure: a left "basic problem" panel
+# (the target ligand alone, hot-spot atoms in red vs. the rest in yellow,
+# per the RFDiffusion3 binder-design spec) next to a 2x2 grid of designs —
+# top row: 2 top-pLDDT designs from the nonadaptive reference campaign,
+# bottom row: 2 top-pLDDT designs from the adaptive production campaign.
+#
+# Run from inside molvizgen (this repo):
+#   python3 run_pipeline.py small_molecule_binder_comparison.yaml
+
+out_dir: /home/mason/exdrive/rad/smallmol/molviz_binder_comparison
+
+steps:
+  # --- left panel: the design problem itself -----------------------------
+  - name: problem_panel
+    kind: render
+    args:
+      script: ligand_hotspot_figure.py
+      input: /home/mason/exdrive/rad/smallmol/prod/small_molecule_binding-1/p1_in/sm_binder_design.json
+      task: partial
+      pdb_override: /home/mason/exdrive/rad/smallmol/IMPRESS/examples/small_molecule_binding/p1_in/input_pdbs/IAI.pdb
+      width: 1600
+      height: 1600
+      out: problem_panel.png
+
+  # --- top row: 2 best (highest AF2 pLDDT) nonadaptive-reference designs --
+  - name: nonadaptive_find
+    kind: find_smallmol
+    args:
+      campaign_root: /home/mason/exdrive/rad/smallmol/nonadaptive_reference/small_molecule_binding-1/small_molecule_binding
+      campaign_label: nonadaptive
+
+  - name: nonadaptive_top2
+    kind: filter_top_n
+    args:
+      in: "${nonadaptive_find.manifest}"
+      score_field: af2_plddt
+      n: 2
+
+  - name: nonadaptive_figures
+    kind: generate_each
+    args:
+      selection: "${nonadaptive_top2.manifest}"
+      script: generate_figure.py
+      domain_color: skyblue
+      peptide_color_hex: FF8C00
+      width: 1600
+      height: 1600
+
+  - name: nonadaptive_row
+    kind: assemble
+    args:
+      images: "${nonadaptive_figures.pngs}"
+      rows: 1
+      cols: 2
+      padding: 20
+      trim_pad: 15
+      no_scale: true
+      out: nonadaptive_row.png
+
+  # --- bottom row: 2 best (highest AF2 pLDDT) production designs ---------
+  - name: prod_find
+    kind: find_smallmol
+    args:
+      campaign_root: /home/mason/exdrive/rad/smallmol/prod/small_molecule_binding-1
+      campaign_label: prod
+
+  - name: prod_top2
+    kind: filter_top_n
+    args:
+      in: "${prod_find.manifest}"
+      score_field: af2_plddt
+      n: 2
+
+  - name: prod_figures
+    kind: generate_each
+    args:
+      selection: "${prod_top2.manifest}"
+      script: generate_figure.py
+      domain_color: skyblue
+      peptide_color_hex: FF8C00
+      width: 1600
+      height: 1600
+
+  - name: prod_row
+    kind: assemble
+    args:
+      images: "${prod_figures.pngs}"
+      rows: 1
+      cols: 2
+      padding: 20
+      trim_pad: 15
+      no_scale: true
+      out: prod_row.png
+
+  # --- final: left problem panel (1/3 width) + 2x2 design grid (2/3) -----
+  - name: final
+    kind: assemble_panel_layout
+    args:
+      left: "${problem_panel.image}"
+      right:
+        - "${nonadaptive_row.image}"
+        - "${prod_row.image}"
+      right_rows: 2
+      right_cols: 1
+      left_width_fraction: 0.333333
+      padding: 25
+      trim_pad: 15
+      target_width_in: 10.5
+      out: small_molecule_binder_comparison.png

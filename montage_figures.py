@@ -9,16 +9,22 @@ Usage:
         [--rows 1] [--cols 5] [--target-width-in 6.0] [--dpi 300] [--padding 40] [--bg white]
 """
 import argparse
+import os
 import sys
 
 from PIL import Image
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+from imgtrim import trim_to_content  # noqa: E402
 
-def build_montage(image_paths, rows, cols, padding, bg):
+
+def build_montage(image_paths, rows, cols, padding, bg, trim=True, trim_pad=20):
     if len(image_paths) > rows * cols:
         sys.exit(f"{len(image_paths)} images given but the {rows}x{cols} grid only has {rows * cols} cells")
 
     images = [Image.open(p).convert("RGB") for p in image_paths]
+    if trim:
+        images = [trim_to_content(im, bg, trim_pad) for im in images]
 
     # Evenly-spaced table: every cell is the same size (the largest image's
     # dimensions), each source image centered within its cell.
@@ -59,9 +65,11 @@ def main():
     parser.add_argument("--padding", type=int, default=40, help="Pixels between/around cells, at native resolution")
     parser.add_argument("--bg", default="white")
     parser.add_argument("--no-scale", action="store_true", help="Skip scaling to --target-width-in; save at native padded resolution (for intermediate montages in a larger assembly)")
+    parser.add_argument("--no-trim", action="store_true", help="Don't trim each source image's background margin down to its content bounding box before laying out cells")
+    parser.add_argument("--trim-pad", type=int, default=20, help="Pixels of background left around each image's content after trimming (default: 20)")
     args = parser.parse_args()
 
-    montage = build_montage(args.images, args.rows, args.cols, args.padding, args.bg)
+    montage = build_montage(args.images, args.rows, args.cols, args.padding, args.bg, trim=not args.no_trim, trim_pad=args.trim_pad)
     if args.no_scale:
         montage.save(args.out, dpi=(args.dpi, args.dpi))
         print(f"Wrote {args.out} ({montage.width}x{montage.height}px, unscaled @ {args.dpi} dpi)")

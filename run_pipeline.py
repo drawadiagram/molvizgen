@@ -122,6 +122,25 @@ def handle_find_campaign(name, args, base_out_dir):
     return {"manifest": manifest}
 
 
+def handle_find_smallmol(name, args, base_out_dir):
+    manifest = os.path.join(step_out_dir(base_out_dir, name), "candidates.json")
+    cmd = [sys.executable, script_path("find_structures_smallmol.py")]
+    cmd += flags_from_args(args)
+    cmd += ["--out", manifest]
+    run(cmd)
+    return {"manifest": manifest}
+
+
+def handle_filter_top_n(name, args, base_out_dir):
+    manifest = os.path.join(step_out_dir(base_out_dir, name), "candidates.json")
+    cmd = [sys.executable, script_path("filter_top_n.py")]
+    cmd += flags_from_args(args, skip=("in",))
+    cmd += ["--in", args["in"]]
+    cmd += ["--out", manifest]
+    run(cmd)
+    return {"manifest": manifest}
+
+
 def handle_filter_best_score(name, args, base_out_dir):
     manifest = os.path.join(step_out_dir(base_out_dir, name), "candidates.json")
     cmd = [sys.executable, script_path("filter_best_score.py")]
@@ -184,14 +203,43 @@ def handle_assemble(name, args, base_out_dir):
     return {"image": image}
 
 
+def handle_render(name, args, base_out_dir):
+    """One-off GENERATE call for a script that takes a single (input, output)
+    pair rather than looping over a manifest (e.g. ligand_hotspot_figure.py,
+    which renders one design-spec JSON, not a set of candidate structures)."""
+    out_dir = step_out_dir(base_out_dir, name)
+    image = os.path.join(out_dir, args.get("out", f"{name}.png"))
+    cmd = [sys.executable, script_path(args["script"])]
+    cmd += [args["input"], image]
+    cmd += flags_from_args(args, skip=("script", "input", "out"))
+    run(cmd)
+    return {"image": image}
+
+
+def handle_assemble_panel_layout(name, args, base_out_dir):
+    out_dir = step_out_dir(base_out_dir, name)
+    image = os.path.join(out_dir, args.get("out", "panel_layout.png"))
+    cmd = [sys.executable, script_path("assemble_panel_layout.py")]
+    cmd += flags_from_args(args, skip=("left", "right", "out"))
+    cmd += ["--left", args["left"]]
+    cmd += ["--right"] + args["right"]
+    cmd += ["--out", image]
+    run(cmd)
+    return {"image": image}
+
+
 HANDLERS = {
     "find_flat": handle_find_flat,
     "find_campaign": handle_find_campaign,
+    "find_smallmol": handle_find_smallmol,
     "filter_best_score": handle_filter_best_score,
+    "filter_top_n": handle_filter_top_n,
     "filter_diversity": handle_filter_diversity,
     "plot_heatmap": handle_plot_heatmap,
     "generate_each": handle_generate_each,
+    "render": handle_render,
     "assemble": handle_assemble,
+    "assemble_panel_layout": handle_assemble_panel_layout,
 }
 
 
