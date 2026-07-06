@@ -227,11 +227,12 @@ Kabsch-fit `reference` into its frame" recipe lives in
 `lib/peptide_align.py`'s `load_and_align_pair`, not duplicated per script.
 `aligned_overlay_figure.py` is the same alignment rendered the other way —
 **one** panel with both structures superposed (four independent colors:
-reference domain/peptide, design domain/peptide, default cyan/green/red/purple)
-rather than two tiled panels, for reading the domain and peptide change as a
-direct overlay; it's a new `render_overlay` step kind (two inputs, one
-output, unlike `render`'s one-input/one-output or `render_pair`'s
-two-input/two-output). See `examples/pdz_design_vs_template/` for a worked
+reference domain/peptide, design domain/peptide, default cyan/green/red/
+yellow) rather than two tiled panels, for reading the domain and peptide
+change as a direct overlay; it's a new `render_overlay` step kind (two
+inputs, one output, unlike `render`'s one-input/one-output or
+`render_pair`'s two-input/two-output). See `examples/pdz_design_vs_template/`
+for a worked
 pipeline over the pdzbinder production campaign producing both views,
 including the application-specific `resolve_template.py` lookup step that
 maps a `find_structures_campaign.py` candidate's `group`/`campaign_dir` to

@@ -15,7 +15,7 @@
 #   - `overlay_4k6y` (render_overlay, ../../aligned_overlay_figure.py): one
 #     combined panel with both structures superposed -- four colors tell
 #     the four chains apart (template domain cyan, template peptide green,
-#     design domain red, design peptide purple) -- plus, since an overlay is
+#     design domain red, design peptide yellow) -- plus, since an overlay is
 #     easy to misread when the two cartoons occlude each other, the same
 #     step also exports each structure's own solo, unobstructed view
 #     (`out_reference`/`out_design` -- every overlay-style figure script
@@ -74,7 +74,7 @@ steps:
       reference_domain_color: cyan
       reference_peptide_color: green
       design_domain_color: red
-      design_peptide_color: purple
+      design_peptide_color: yellow
       align_length: 4
       width: 1800
       height: 2400

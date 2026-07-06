@@ -9,7 +9,7 @@ panel instead of two side-by-side panels, so the "gross change" to the
 domain and its peptide interface reads directly as an overlay. Four
 independent colors distinguish which structure is which: reference domain /
 reference peptide / design domain / design peptide (defaults: cyan / green /
-red / purple).
+red / yellow).
 
 As in aligned_pair_figure.py, `design` is oriented with the standard
 domain/peptide long-axis-vertical convention and `reference` is rigidly
@@ -33,7 +33,7 @@ Usage:
         [--design-chain-domain A] [--design-chain-peptide B] \
         [--align-length 4] \
         [--reference-domain-color cyan] [--reference-peptide-color green] \
-        [--design-domain-color red] [--design-peptide-color purple] \
+        [--design-domain-color red] [--design-peptide-color yellow] \
         [--zoom-buffer 5] \
         [--out-reference reference_alone.png] [--out-design design_alone.png] \
         [--width 1800] [--height 2400] [--dpi 300] [--bg white]
@@ -113,7 +113,7 @@ def main():
     parser.add_argument("--reference-domain-color", default="cyan", help="PyMOL color for the reference domain cartoon (default: cyan)")
     parser.add_argument("--reference-peptide-color", default="green", help="PyMOL color for the reference peptide cartoon (default: green)")
     parser.add_argument("--design-domain-color", default="red", help="PyMOL color for the design domain cartoon (default: red)")
-    parser.add_argument("--design-peptide-color", default="purple", help="PyMOL color for the design peptide cartoon (default: purple)")
+    parser.add_argument("--design-peptide-color", default="yellow", help="PyMOL color for the design peptide cartoon (default: yellow)")
     parser.add_argument("--zoom-buffer", type=float, default=5.0, help="Padding (Angstroms) when panning/zooming to fit both structures together (default: 5.0)")
     parser.add_argument("--out-reference", default=None, help="Also write a solo, unobstructed render of just the reference structure to this path (default: not written)")
     parser.add_argument("--out-design", default=None, help="Also write a solo, unobstructed render of just the design structure to this path (default: not written)")
