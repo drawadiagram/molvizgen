@@ -4,8 +4,8 @@
 # top row: 2 top-pLDDT designs from the nonadaptive reference campaign,
 # bottom row: 2 top-pLDDT designs from the adaptive production campaign.
 #
-# Run from inside molvizgen (this repo):
-#   python3 run_pipeline.py small_molecule_binder_comparison.yaml
+# Run from this directory:
+#   cd examples/smallmol && python3 ../../run_pipeline.py small_molecule_binder_comparison.yaml
 
 out_dir: /home/mason/exdrive/rad/smallmol/molviz_binder_comparison
 

@@ -4,7 +4,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PDB_DIR="${1:-$(cd "$SCRIPT_DIR/../new_decoys" && pwd)}"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PDB_DIR="${1:-/home/mason/exdrive/rad/jonathan_input_files/70_files/new_decoys}"
 OUT_DIR="$(cd "$PDB_DIR" && pwd)"
 ANALYSIS_DIR="$OUT_DIR/analysis"
 FIGURES_DIR="$OUT_DIR/figures"
@@ -12,7 +13,7 @@ FIGURES_DIR="$OUT_DIR/figures"
 mkdir -p "$ANALYSIS_DIR" "$FIGURES_DIR"
 
 echo "== Step 1/3: computing pairwise PDZ-domain RMSD and selecting 5 dissimilar structures ==" >&2
-SELECTED=$(python3 "$SCRIPT_DIR/pdz_pairwise_rmsd.py" \
+SELECTED=$(python3 "$REPO_ROOT/pdz_pairwise_rmsd.py" \
     --pdb-dir "$PDB_DIR" \
     --n-select 5 \
     --out-dir "$ANALYSIS_DIR")
@@ -25,13 +26,13 @@ for id in $SELECTED; do
     pdb_path="$PDB_DIR/$id.pdb"
     out_png="$FIGURES_DIR/${id}_pdz_complex.png"
     echo "  rendering $id -> $out_png" >&2
-    python3 "$SCRIPT_DIR/pdz_figure.py" "$pdb_path" "$out_png"
+    python3 "$REPO_ROOT/pdz_figure.py" "$pdb_path" "$out_png"
     FIGURE_PNGS+=("$out_png")
 done
 
 echo "== Step 3/3: building montage ==" >&2
 MONTAGE_PNG="$FIGURES_DIR/montage.png"
-python3 "$SCRIPT_DIR/montage_figures.py" "${FIGURE_PNGS[@]}" --out "$MONTAGE_PNG"
+python3 "$REPO_ROOT/montage_figures.py" "${FIGURE_PNGS[@]}" --out "$MONTAGE_PNG"
 
 echo "" >&2
 echo "Done. 5 figures written to $FIGURES_DIR:" >&2

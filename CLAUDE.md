@@ -30,10 +30,13 @@ python3 plot_rmsd_heatmap.py --matrix analysis/rmsd_matrix.csv --out heatmap.png
 ```
 
 Run a full YAML-described pipeline (see `run_pipeline.py`'s docstring and
-`reference_vs_experiment.yaml` / `rmsd_heatmap_pipeline.yaml` for worked
-examples):
+`examples/heatmap/rmsd_heatmap_pipeline.yaml` /
+`examples/reference_experiment/reference_vs_experiment.yaml` /
+`examples/smallmol/small_molecule_binder_comparison.yaml` for worked
+examples). Each example config lives in its own `examples/<name>/`
+subdirectory and is meant to be run from inside it, e.g.:
 ```
-python3 run_pipeline.py <pipeline.yaml>
+cd examples/heatmap && python3 ../../run_pipeline.py rmsd_heatmap_pipeline.yaml
 ```
 
 Open the interactive notebook (documents the YAML format and runs
@@ -42,10 +45,14 @@ find → filter_diversity → plot_rmsd_heatmap live):
 marimo edit rmsd_heatmap_notebook.py
 ```
 
-There are also two hand-written bash wrappers (`run_diverse_figures.sh`,
-`run_reference_vs_experiment.sh`) that chain the same underlying scripts
-without going through `run_pipeline.py`/YAML — useful as a second reference
-for how the scripts compose, or for one-off runs.
+There are also two hand-written bash wrappers,
+`examples/diverse_figures/run_diverse_figures.sh` and
+`examples/reference_experiment/run_reference_vs_experiment.sh`, that chain
+the same underlying scripts without going through `run_pipeline.py`/YAML —
+useful as a second reference for how the scripts compose, or for one-off
+runs. Both locate the repo's Python scripts via a `REPO_ROOT` computed as
+two directories up from their own location (`examples/<name>/../..`), since
+the scripts themselves stay at the repo root.
 
 ## Architecture
 
@@ -102,10 +109,44 @@ faces the camera — so every rendered figure is comparably framed regardless
 of the structure's original coordinate frame. `pdz_figure.py` hard-codes the
 PDZ/peptide chain-A/chain-B convention and pink/lime-green coloring;
 `generate_figure.py` is the same logic with chain ids and colors as flags,
-for structures that don't use that convention.
+for structures that don't use that convention. `ligand_hotspot_figure.py`
+applies the same long-axis-to-vertical orientation to a lone ligand (no
+second chain to twist toward the camera, since there's no protein in that
+figure at all).
+
+**Atom-name selection (`lib/ligand_select.py`) is a second selection
+convention alongside chain ids**, for figures that need to split a single
+hetero-residue into sub-groups rather than select whole chains — e.g. the
+"hot spot" atoms an RFDiffusion3 binder-design spec (an ImpressBasePipeline
+`*_binder_design.json` file) designates as buried/targeted vs. the rest of
+the ligand. `load_binder_design_spec` reads that JSON and resolves its
+`input` PDB path relative to the JSON's own directory (same convention every
+pipeline here uses); `atom_name_selection` builds the PyMOL `name`-based
+selection expression from the resulting atom-name lists.
+`ligand_hotspot_figure.py` is the GENERATE step built on top of it.
+
+**`find_structures_smallmol.py` mirrors an external pipeline's layout and
+state machine** (ImpressBasePipeline's `SmallMoleculeBindingPipeline` — see
+that project's own CLAUDE.md for the authoritative state machine). A
+campaign root holds flat `p<N>/` directories, each a numbered sequence of
+`<taskcount>_<taskname>/{in,out}/` task directories. A "completed design" is
+one that reached an `alphafold` task with a computable mean pLDDT; because
+AF2/ColabFold doesn't co-fold small molecules, the AF2 output itself is
+protein-only, so this step walks back to the `fastrelax` task that
+immediately precedes it (observed convention: consecutive task numbers) to
+find the actual protein+ligand complex PDB worth rendering.
 
 `montage_figures.py` tiles a list of images into an evenly-spaced grid and
 optionally rescales the whole montage to a target width — intermediate
 montages in a larger assembly should pass `--no-scale` and only the final
 assemble step should scale, so repeated resizing doesn't degrade image
-quality.
+quality. Before tiling, both it and `assemble_panel_layout.py` trim each
+source image to its content bounding box via `lib/imgtrim.py`
+(`trim_to_content`, `--no-trim` to skip) — every GENERATE script rays-traces
+onto a fixed canvas with its own zoom buffer, so raw PNGs otherwise carry
+inconsistent background margin that's most visible when panels have
+different aspect ratios. `assemble_panel_layout.py` handles a layout a
+uniform `rows x cols` grid can't express: a wide "problem" panel spanning
+the full height of an adjacent `rows x cols` grid of "design" panels (built
+by calling `montage_figures.py`'s `build_montage()` directly), the left
+panel's width computed as a fraction of the *final* canvas.

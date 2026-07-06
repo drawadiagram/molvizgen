@@ -1,20 +1,21 @@
 # Reference vs. experiment: build a 1x5 montage of the 5 pairwise-dissimilar
-# structures in the sibling ../new_decoys data directory (reference), a 1x5
-# montage of the 5 pairwise-dissimilar, best-scoring structures from the
-# production campaign (experiment), then assemble the two into one 2x1
-# figure. Only the final assemble step scales to a fixed width.
+# structures in the new_decoys data directory this package was developed
+# against (reference), a 1x5 montage of the 5 pairwise-dissimilar,
+# best-scoring structures from the production campaign (experiment), then
+# assemble the two into one 2x1 figure. Only the final assemble step scales
+# to a fixed width.
 #
-# Run from inside molvizgen (this repo):
-#   python3 run_pipeline.py reference_vs_experiment.yaml
+# Run from this directory:
+#   cd examples/reference_experiment && python3 ../../run_pipeline.py reference_vs_experiment.yaml
 
-out_dir: ../new_decoys
+out_dir: analysis
 
 steps:
-  # --- reference branch: the ../new_decoys directory's 70 structures -----
+  # --- reference branch: the new_decoys directory's 70 structures --------
   - name: ref_find
     kind: find_flat
     args:
-      dir: ../new_decoys
+      dir: /home/mason/exdrive/rad/jonathan_input_files/70_files/new_decoys
 
   - name: ref_select
     kind: filter_diversity

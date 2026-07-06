@@ -1,0 +1,29 @@
+# Diversity screen over every *.pdb in the new_decoys data directory this
+# package was developed against: FIND all structures, FILTER to a
+# pairwise-dissimilar subset by chain-CA RMSD (lib/rmsd.py), then plot the
+# full pairwise RMSD matrix as a heatmap alongside that selection.
+#
+# Run from this directory:
+#   cd examples/heatmap && python3 ../../run_pipeline.py rmsd_heatmap_pipeline.yaml
+
+out_dir: analysis/rmsd_heatmap_demo
+
+steps:
+  - name: find
+    kind: find_flat
+    args:
+      dir: /home/mason/exdrive/rad/jonathan_input_files/70_files/new_decoys
+
+  - name: select
+    kind: filter_diversity
+    args:
+      in: "${find.manifest}"
+      chain_field: chain_domain
+      n_select: 5
+
+  - name: heatmap
+    kind: plot_heatmap
+    args:
+      matrix: "${select.matrix}"
+      title: "Pairwise Cα RMSD — 70-structure candidate set"
+      out: rmsd_heatmap.png

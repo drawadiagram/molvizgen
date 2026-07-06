@@ -15,6 +15,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 REFERENCE_DIR="$(pwd)"
 PROD_ROOT="/home/mason/exdrive/rad/pdzbinder/prod"
@@ -45,11 +46,11 @@ mkdir -p "$ANALYSIS_DIR/reference" "$ANALYSIS_DIR/experiment" "$FIGURES_DIR/refe
 
 # --- Branch 1: reference (this directory's existing pipeline) ------------
 echo "== Reference branch: SELECT (FIND + FILTER) ==" >&2
-python3 "$SCRIPT_DIR/find_structures_flat.py" \
+python3 "$REPO_ROOT/find_structures_flat.py" \
     --dir "$REFERENCE_DIR" \
     --out "$ANALYSIS_DIR/reference/candidates.json"
 
-REF_SELECTED=$(python3 "$SCRIPT_DIR/filter_diversity.py" \
+REF_SELECTED=$(python3 "$REPO_ROOT/filter_diversity.py" \
     --in "$ANALYSIS_DIR/reference/candidates.json" \
     --chain-field chain_domain \
     --n-select "$N_SELECT" \
@@ -61,13 +62,13 @@ for pdb_path in $REF_SELECTED; do
     id="$(basename "$pdb_path" .pdb)"
     out_png="$FIGURES_DIR/reference/${id}_pdz_complex.png"
     echo "  rendering $id -> $out_png" >&2
-    python3 "$SCRIPT_DIR/pdz_figure.py" "$pdb_path" "$out_png"
+    python3 "$REPO_ROOT/pdz_figure.py" "$pdb_path" "$out_png"
     REF_PNGS+=("$out_png")
 done
 
 echo "== Reference branch: ASSEMBLE (unscaled) ==" >&2
 REF_MONTAGE="$FIGURES_DIR/reference_montage.png"
-python3 "$SCRIPT_DIR/montage_figures.py" "${REF_PNGS[@]}" \
+python3 "$REPO_ROOT/montage_figures.py" "${REF_PNGS[@]}" \
     --rows 1 --cols "$N_SELECT" --out "$REF_MONTAGE" --no-scale
 
 # --- Branch 2: experiment (production campaign) ---------------------------
@@ -76,14 +77,14 @@ FIND_ARGS=(--prod-root "$PROD_ROOT" --out "$ANALYSIS_DIR/experiment/candidates_a
 if [[ -n "$PROD_GROUPS" ]]; then
     FIND_ARGS+=(--groups "$PROD_GROUPS")
 fi
-python3 "$SCRIPT_DIR/find_structures_campaign.py" "${FIND_ARGS[@]}"
+python3 "$REPO_ROOT/find_structures_campaign.py" "${FIND_ARGS[@]}"
 
-python3 "$SCRIPT_DIR/filter_best_score.py" \
+python3 "$REPO_ROOT/filter_best_score.py" \
     --in "$ANALYSIS_DIR/experiment/candidates_all.json" \
     --out "$ANALYSIS_DIR/experiment/candidates_best.json" \
     --key id --score-field confidence_score --mode max
 
-EXP_SELECTED=$(python3 "$SCRIPT_DIR/filter_diversity.py" \
+EXP_SELECTED=$(python3 "$REPO_ROOT/filter_diversity.py" \
     --in "$ANALYSIS_DIR/experiment/candidates_best.json" \
     --chain-field chain_domain \
     --n-select "$N_SELECT" \
@@ -99,19 +100,19 @@ for pdb_path in $EXP_SELECTED; do
     id="$(basename "$pdb_path" .pdb)"
     out_png="$FIGURES_DIR/experiment/${id}_pdz_complex.png"
     echo "  rendering $id -> $out_png" >&2
-    python3 "$SCRIPT_DIR/pdz_figure.py" "$pdb_path" "$out_png"
+    python3 "$REPO_ROOT/pdz_figure.py" "$pdb_path" "$out_png"
     EXP_PNGS+=("$out_png")
 done
 
 echo "== Experiment branch: ASSEMBLE (unscaled) ==" >&2
 EXP_MONTAGE="$FIGURES_DIR/experiment_montage.png"
-python3 "$SCRIPT_DIR/montage_figures.py" "${EXP_PNGS[@]}" \
+python3 "$REPO_ROOT/montage_figures.py" "${EXP_PNGS[@]}" \
     --rows 1 --cols "$N_SELECT" --out "$EXP_MONTAGE" --no-scale
 
 # --- Final: ASSEMBLE the two panels, scaling only here ---------------------
 echo "== Final ASSEMBLE: reference (top) vs. experiment (bottom), scaled to ${TARGET_WIDTH_IN}in ==" >&2
 FINAL_PNG="$FIGURES_DIR/reference_vs_experiment.png"
-python3 "$SCRIPT_DIR/montage_figures.py" "$REF_MONTAGE" "$EXP_MONTAGE" \
+python3 "$REPO_ROOT/montage_figures.py" "$REF_MONTAGE" "$EXP_MONTAGE" \
     --rows 2 --cols 1 --out "$FINAL_PNG" --target-width-in "$TARGET_WIDTH_IN"
 
 echo "" >&2
