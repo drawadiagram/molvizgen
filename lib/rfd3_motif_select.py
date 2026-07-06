@@ -32,8 +32,9 @@ comes out the same regardless of how many redesign generations produced
 the fold being examined.
 """
 import json
-import os
 import re
+
+from design_spec import parse_atom_names, resolve_input_path
 
 _PROTEIN_RES_RE = re.compile(r"^([A-Za-z])(\d+)$")
 
@@ -48,16 +49,8 @@ def load_design_spec(design_json_path, model_name):
     if model_name not in spec:
         raise KeyError(f"{design_json_path}: no {model_name!r} entry (has: {list(spec)})")
     entry = dict(spec[model_name])
-    base_dir = os.path.dirname(os.path.abspath(design_json_path))
-    entry["input"] = os.path.normpath(os.path.join(base_dir, entry["input"]))
+    entry["input"] = resolve_input_path(design_json_path, entry["input"])
     return entry
-
-
-def parse_atom_names(csv_str):
-    """'C22,C23,N13' -> ['C22', 'C23', 'N13']. Empty/missing string -> []."""
-    if not csv_str:
-        return []
-    return [tok.strip() for tok in csv_str.split(",") if tok.strip()]
 
 
 def split_fixed_atoms(select_fixed_atoms, ligand_resns):

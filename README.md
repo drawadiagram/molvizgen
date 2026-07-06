@@ -76,7 +76,12 @@ Every structure ends up framed the same way regardless of its original
 coordinate frame, so a montage of different structures reads as one
 consistent figure set rather than a grab-bag of arbitrary orientations.
 `ligand_hotspot_figure.py` applies the same long-axis-to-vertical idea to a
-lone ligand, since there's no second chain to twist toward the camera.
+lone ligand, since there's no second chain to twist toward the camera. This
+orientation math (`lib/geometry.py`'s PCA/rotation helpers, `lib/orient.py`'s
+scene-transform functions) and the shared PyMOL rendering boilerplate
+(`lib/pymol_scene.py`: session bootstrap, material settings, ray-trace-and-save)
+live in `lib/`, so every GENERATE script is a thin, domain-specific layer over
+the same shared core rather than reimplementing it.
 
 **Atom-name selection.** Chain ids select whole chains; some figures need to
 split a *single* hetero-residue into sub-groups instead (e.g. the hot-spot
@@ -90,8 +95,9 @@ fixed-size canvas with its own zoom buffer, so raw PNGs carry inconsistent
 background margin — most visible when panels have different aspect ratios
 (e.g. a tall thin ligand next to a roughly square protein cartoon).
 `lib/imgtrim.py` crops each source image to its content bounding box (plus a
-small pad) before tiling; both `montage_figures.py` and
-`assemble_panel_layout.py` do this by default (`--no-trim` to skip).
+small pad) before tiling; `lib/montage.py`'s `build_montage` does this by
+default (`--no-trim` to skip), shared by both `montage_figures.py` and
+`assemble_panel_layout.py` rather than each carrying its own tiling logic.
 
 **Point-correspondence alignment (Kabsch).** Some figures already know an
 explicit atom-to-atom correspondence between two structures — e.g. an
@@ -207,16 +213,22 @@ its own directory (see each file's header comment for the exact command):
 | `pdz_pairwise_rmsd.py` | Standalone predecessor of `filter_diversity.py` (directory glob instead of a manifest, hard-coded chain A) — kept for reference |
 | `rmsd_heatmap_notebook.py` | Interactive marimo notebook: documents the YAML format and runs find → filter_diversity → plot_rmsd_heatmap live |
 | `lib/manifest.py` | The candidate-manifest read/write contract shared by every step |
-| `lib/rmsd.py` | PyMOL-backed chain-CA RMSD core: load structures, compute the pairwise matrix, greedy max-min selection |
+| `lib/rmsd.py` | PyMOL-backed chain-CA RMSD core: load structures, compute the pairwise matrix, greedy max-min selection, chain-id-agreement check, matrix CSV I/O |
 | `lib/kabsch.py` | Point-correspondence rigid-body superposition (Kabsch algorithm) for two paired Nx3 coordinate arrays |
 | `lib/pdb_normalize.py` | Detect and rewrite non-standard multi-character PDB chain ids |
 | `lib/ligand_select.py` | Atom-name-based ligand selection from an RFDiffusion3 binder-design spec, for splitting one hetero-residue into sub-groups |
 | `lib/rfd3_motif_select.py` | RFD3 structured design-spec selection: contig -> chai-position mapping, protein-motif-residue vs. ligand atom-name split |
+| `lib/design_spec.py` | Atom-name-CSV parsing and spec-relative-path resolution shared by `lib/ligand_select.py` and `lib/rfd3_motif_select.py` |
 | `lib/imgtrim.py` | Crop a rendered figure to its content bounding box before tiling into a montage |
+| `lib/montage.py` | Grid-tiling (`build_montage`) and target-width scaling (`scale_to_width`) shared by `montage_figures.py` and `assemble_panel_layout.py` |
+| `lib/geometry.py` | Pure-numpy orientation math: Rodrigues rotation (`rotation_to_align`) and PCA long-axis/plane fitting, no PyMOL dependency |
+| `lib/pymol_scene.py` | PyMOL session bootstrap, the shared "AOShiny" material settings, ray-trace-and-save, and the `--width/--height/--dpi/--bg` flag helper — used by every GENERATE script |
+| `lib/orient.py` | The actual scene-orientation routines (long-axis-vertical with optional twist; look-down-on-plane) built on `lib/geometry.py` + `lib/kabsch.py`, used by all four GENERATE scripts |
 
 ## Requirements
 
 A Python 3 environment with PyMOL's Python API importable (`import pymol`),
-plus `numpy`, `PyYAML`, `Pillow`, and `matplotlib`. `marimo` is only needed
-to run the notebook. There's no dependency manifest — these must already be
-on the interpreter's `PATH`/`site-packages`.
+plus `numpy`, `PyYAML`, `Pillow`, and `matplotlib`. `pytest` is only needed
+to run the test suite (`pytest tests/`), `marimo` only to run the notebook.
+There's no dependency manifest — these must already be on the interpreter's
+`PATH`/`site-packages`.

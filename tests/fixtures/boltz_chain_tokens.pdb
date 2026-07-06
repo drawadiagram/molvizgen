@@ -1,0 +1,8 @@
+ATOM      1  N   THR pdz  11      18.772   6.708  37.635  1.00 54.60           N
+ATOM      2  CA  THR pdz  11      19.016   8.145  37.608  1.00 52.09           C
+ATOM      3  C   THR pdz  11      18.079   8.821  36.608  1.00 42.40           C
+TER       4      THR pdz  11
+ATOM      5  N   GLY pep   1      10.500   2.100  30.200  1.00 40.00           N
+ATOM      6  CA  GLY pep   1      11.200   3.400  30.900  1.00 41.00           C
+TER       7      GLY pep   1
+END

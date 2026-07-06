@@ -54,18 +54,13 @@ def read_matrix_csv(path):
 
 
 def compute_matrix(in_path, chain_field):
-    from rmsd import load_ca_objects, pairwise_rmsd_matrix  # noqa: E402
+    from rmsd import load_ca_objects, pairwise_rmsd_matrix, require_single_chain_id  # noqa: E402
 
     candidates = read_manifest_stdin_or_path(in_path)
     if not candidates:
         sys.exit("No candidates in input manifest")
 
-    chain_ids = {c.get(chain_field) for c in candidates}
-    if len(chain_ids) != 1:
-        sys.exit(f"Candidates disagree on {chain_field!r}: {chain_ids}; pass a manifest with a single consistent chain id")
-    chain_id = chain_ids.pop()
-    if chain_id is None:
-        sys.exit(f"No {chain_field!r} field found on candidates")
+    chain_id = require_single_chain_id(candidates, chain_field)
 
     named_paths = [(c["id"], c["pdb_path"]) for c in candidates]
     print(f"Loading chain-{chain_id} CA atoms for {len(candidates)} candidates ...", file=sys.stderr)
@@ -78,15 +73,6 @@ def compute_matrix(in_path, chain_field):
 
     matrix = pairwise_rmsd_matrix(names, progress=progress)
     return names, matrix
-
-
-def write_matrix_csv(path, names, matrix):
-    os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
-    with open(path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([""] + names)
-        for name, row in zip(names, matrix):
-            writer.writerow([name] + [f"{v:.4f}" for v in row])
 
 
 def plot_heatmap(names, matrix, out_path, title, dpi, annotate):
@@ -146,6 +132,7 @@ def main():
     else:
         names, matrix = compute_matrix(args.in_path, args.chain_field)
         if args.out_matrix:
+            from rmsd import write_matrix_csv  # noqa: E402
             write_matrix_csv(args.out_matrix, names, matrix)
             print(f"Wrote RMSD matrix to {args.out_matrix}", file=sys.stderr)
 

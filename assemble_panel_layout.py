@@ -23,10 +23,9 @@ import sys
 
 from PIL import Image
 
-from montage_figures import build_montage, scale_to_width
-
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 from imgtrim import trim_to_content  # noqa: E402
+from montage import build_montage, scale_to_width  # noqa: E402
 
 
 def compose(left_path, right_paths, right_rows, right_cols, left_fraction, padding, bg, trim=True, trim_pad=20):

@@ -23,7 +23,6 @@ Usage:
     python3 run_pipeline.py pipeline.yaml
 """
 import argparse
-import json
 import os
 import re
 import subprocess
@@ -34,14 +33,12 @@ import yaml
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REF_PATTERN = re.compile(r"^\$\{([\w.]+)\}$")
 
+sys.path.insert(0, os.path.join(SCRIPT_DIR, "lib"))
+from manifest import read_manifest  # noqa: E402
+
 
 def script_path(name):
     return os.path.join(SCRIPT_DIR, name)
-
-
-def read_manifest(path):
-    with open(path) as f:
-        return json.load(f)["candidates"]
 
 
 def run(cmd):

@@ -1,0 +1,13 @@
+{
+  "M0110_1c0p": {
+    "input": "./complex_ab.pdb",
+    "ligand": "DAL,PER,FAD",
+    "contig": "A11,20,A35,3,A40",
+    "select_fixed_atoms": {
+      "A11": "N,CA",
+      "A35": "O,C,CA",
+      "A40": "N,CA",
+      "DAL": "N,CA,CB,C,O"
+    }
+  }
+}

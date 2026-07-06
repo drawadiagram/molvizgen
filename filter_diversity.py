@@ -16,14 +16,16 @@ Usage:
         [--chain-field chain_domain] [--n-select 5]
 """
 import argparse
-import csv
 import json
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 from manifest import read_manifest_stdin_or_path, write_manifest  # noqa: E402
-from rmsd import load_ca_objects, pairwise_rmsd_matrix, greedy_max_min_selection  # noqa: E402
+from rmsd import (  # noqa: E402
+    load_ca_objects, pairwise_rmsd_matrix, greedy_max_min_selection,
+    require_single_chain_id, write_matrix_csv,
+)
 
 
 def main():
@@ -40,12 +42,7 @@ def main():
     if len(candidates) < args.n_select:
         sys.exit(f"Only {len(candidates)} candidates but --n-select {args.n_select} requested")
 
-    chain_ids = {c.get(args.chain_field) for c in candidates}
-    if len(chain_ids) != 1:
-        sys.exit(f"Candidates disagree on {args.chain_field!r}: {chain_ids}; pass a manifest with a single consistent chain id")
-    chain_id = chain_ids.pop()
-    if chain_id is None:
-        sys.exit(f"No {args.chain_field!r} field found on candidates")
+    chain_id = require_single_chain_id(candidates, args.chain_field)
 
     os.makedirs(args.out_dir, exist_ok=True)
 
@@ -65,11 +62,7 @@ def main():
     matrix = pairwise_rmsd_matrix(names, progress=progress)
 
     matrix_csv = os.path.join(args.out_dir, "rmsd_matrix.csv")
-    with open(matrix_csv, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([""] + names)
-        for name, row in zip(names, matrix):
-            writer.writerow([name] + [f"{v:.4f}" for v in row])
+    write_matrix_csv(matrix_csv, names, matrix)
     print(f"Wrote RMSD matrix to {matrix_csv}", file=sys.stderr)
 
     selected_idx = greedy_max_min_selection(matrix, args.n_select)

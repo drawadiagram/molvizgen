@@ -8,11 +8,11 @@ This module has no directory or application-specific assumptions: it is pure
 structural-comparison logic, reusable by any FILTER step that needs to reduce
 a set of structures to a pairwise-dissimilar subset.
 """
+import csv
+import os
 import sys
 
-import pymol
-pymol.finish_launching(["pymol", "-qc"])
-from pymol import cmd  # noqa: E402
+from pymol_scene import cmd
 
 
 def load_ca_objects(named_paths, chain_id):
@@ -77,3 +77,29 @@ def greedy_max_min_selection(matrix, n_select):
         selected.append(best_candidate)
 
     return selected
+
+
+def require_single_chain_id(candidates, chain_field):
+    """Check that every candidate agrees on `chain_field`, and return that
+    single agreed-upon chain id. Exits with an error message otherwise -
+    every structure-comparison step here (filter_diversity.py,
+    plot_rmsd_heatmap.py) needs one consistent chain id to align on."""
+    chain_ids = {c.get(chain_field) for c in candidates}
+    if len(chain_ids) != 1:
+        sys.exit(f"Candidates disagree on {chain_field!r}: {chain_ids}; pass a manifest with a single consistent chain id")
+    chain_id = chain_ids.pop()
+    if chain_id is None:
+        sys.exit(f"No {chain_field!r} field found on candidates")
+    return chain_id
+
+
+def write_matrix_csv(path, names, matrix):
+    """Write a pairwise matrix to `path` as CSV: header row of `names`, then
+    one row per name with its RMSD to every other name, formatted to 4
+    decimal places."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([""] + names)
+        for name, row in zip(names, matrix):
+            writer.writerow([name] + [f"{v:.4f}" for v in row])

@@ -22,14 +22,8 @@ A binder-design spec looks like:
 whatever's left of the ligand.
 """
 import json
-import os
 
-
-def parse_atom_names(csv_str):
-    """'C22,C23,N13' -> ['C22', 'C23', 'N13']. Empty/missing string -> []."""
-    if not csv_str:
-        return []
-    return [tok.strip() for tok in csv_str.split(",") if tok.strip()]
+from design_spec import parse_atom_names, resolve_input_path
 
 
 def atom_name_selection(base_selection, atom_names):
@@ -56,8 +50,7 @@ def load_binder_design_spec(design_json_path, task):
     task_spec = spec[task]
 
     ligand = task_spec["ligand"]
-    base_dir = os.path.dirname(os.path.abspath(design_json_path))
-    input_pdb = os.path.normpath(os.path.join(base_dir, task_spec["input"]))
+    input_pdb = resolve_input_path(design_json_path, task_spec["input"])
 
     buried_atoms = parse_atom_names(task_spec.get("select_buried", {}).get(ligand, ""))
     exposed_atoms = parse_atom_names(task_spec.get("select_exposed", {}).get(ligand, ""))

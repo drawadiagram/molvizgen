@@ -53,141 +53,8 @@ from rfd3_motif_select import (  # noqa: E402
     contig_to_chai_positions, ligand_resn_selection,
 )
 from imgtrim import trim_to_content  # noqa: E402
-
-import pymol
-pymol.finish_launching(["pymol", "-qc"])
-from pymol import cmd  # noqa: E402
-
-
-def rotation_to_align(a, b):
-    """Rotation matrix (3x3) that rotates unit vector a onto unit vector b,
-    via Rodrigues' rotation formula. (Shared convention with pdz_figure.py /
-    generate_figure.py's orientation step.)"""
-    a = a / np.linalg.norm(a)
-    b = b / np.linalg.norm(b)
-    v = np.cross(a, b)
-    c = np.dot(a, b)
-    s = np.linalg.norm(v)
-    if s < 1e-8:
-        if c > 0:
-            return np.eye(3)
-        ortho = np.array([1.0, 0.0, 0.0]) if abs(a[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
-        axis = np.cross(a, ortho)
-        axis /= np.linalg.norm(axis)
-        return 2 * np.outer(axis, axis) - np.eye(3)
-    vx = np.array([
-        [0, -v[2], v[1]],
-        [v[2], 0, -v[0]],
-        [-v[1], v[0], 0],
-    ])
-    return np.eye(3) + vx + vx @ vx * ((1 - c) / (s ** 2))
-
-
-def orient_scene_vertically(protein_sel, face_sel, whole_sel):
-    """Rotate `whole_sel` rigidly so `protein_sel`'s long axis (largest PCA
-    component of its CA atoms) lies vertical (Y), twisted about that axis so
-    `face_sel`'s centroid faces the camera (+Z) — the pdz_figure.py /
-    generate_figure.py domain/peptide convention, generalized to whatever
-    should face the camera: the ligand (the original convention, used when
-    the panel is meant to read as a whole complex) or the motif hot-spot
-    selection (to bring the binding motif itself into view, e.g. for a
-    close-up single-panel figure)."""
-    ca_coords = cmd.get_coords(f"{protein_sel} and name CA and polymer")
-    if ca_coords is None or len(ca_coords) < 3:
-        sys.exit(f"{protein_sel!r}: not enough CA atoms to compute an orientation")
-
-    centroid = ca_coords.mean(axis=0)
-    centered = ca_coords - centroid
-    cov = centered.T @ centered
-    eigvals, eigvecs = np.linalg.eigh(cov)
-    long_axis = eigvecs[:, np.argmax(eigvals)]
-
-    target = np.array([0.0, 1.0, 0.0])
-    rot = rotation_to_align(long_axis, target)
-
-    face_coords = cmd.get_coords(face_sel)
-    if face_coords is not None and len(face_coords):
-        face_centroid = face_coords.mean(axis=0)
-        rotated_face = rot @ (face_centroid - centroid)
-
-        if rotated_face[1] < 0:
-            flip = rotation_to_align(target, -target)
-            rot = flip @ rot
-            rotated_face = flip @ rotated_face
-
-        x, _, z = rotated_face
-        if x * x + z * z > 1e-10:
-            theta = np.arctan2(-x, z)
-            c, s = np.cos(theta), np.sin(theta)
-            twist = np.array([
-                [c, 0, s],
-                [0, 1, 0],
-                [-s, 0, c],
-            ])
-            rot = twist @ rot
-
-    m4 = np.eye(4)
-    m4[:3, :3] = rot
-    m4[:3, 3] = centroid - rot @ centroid
-    cmd.transform_selection(whole_sel, list(m4.flatten()), homogenous=1)
-
-
-def orient_look_down_on_plane(plane_sel, behind_sel, whole_sel):
-    """Rotate `whole_sel` rigidly so the camera looks straight down onto the
-    best-fit plane through `plane_sel`'s atoms (the motif hot-spot atoms,
-    i.e. the protein interface) — its normal faces the camera (+Z) — rather
-    than merely twisting some other axis toward it (orient_scene_vertically's
-    convention, which keeps the *protein's* long axis vertical and is a poor
-    fit here: the interface plane's own orientation, not the protein's
-    overall long axis, is what should be face-on for a close-up of it).
-
-    The plane normal is the smallest-variance direction of `plane_sel`'s
-    atoms (PCA); its sign is chosen so `behind_sel` (the bulk of the
-    protein) ends up behind the plane (-Z), not in front of it, so the
-    camera looks at the interface from outside the fold. The plane's own
-    largest-variance in-plane direction is made vertical (Y), giving a
-    deterministic "up" without reference to the rest of the protein."""
-    coords = cmd.get_coords(plane_sel)
-    if coords is None or len(coords) < 3:
-        sys.exit(f"{plane_sel!r}: not enough atoms to fit a plane")
-
-    centroid = coords.mean(axis=0)
-    centered = coords - centroid
-    cov = centered.T @ centered
-    eigvals, eigvecs = np.linalg.eigh(cov)  # ascending eigenvalue order
-    normal = eigvecs[:, 0]              # smallest-variance: the plane normal
-    in_plane_long_axis = eigvecs[:, 2]  # largest-variance: in-plane "long" direction
-
-    behind_coords = cmd.get_coords(behind_sel)
-    behind_centroid = behind_coords.mean(axis=0) if behind_coords is not None and len(behind_coords) else centroid
-    if np.dot(behind_centroid - centroid, normal) > 0:
-        normal = -normal
-
-    v_z = normal / np.linalg.norm(normal)
-    v_y = in_plane_long_axis - np.dot(in_plane_long_axis, v_z) * v_z
-    v_y /= np.linalg.norm(v_y)
-    v_x = np.cross(v_y, v_z)
-    rot = np.array([v_x, v_y, v_z])
-
-    m4 = np.eye(4)
-    m4[:3, :3] = rot
-    m4[:3, 3] = centroid - rot @ centroid
-    cmd.transform_selection(whole_sel, list(m4.flatten()), homogenous=1)
-
-
-def apply_material_aoshiny():
-    cmd.set("ray_shadows", 0)
-    cmd.set("ambient_occlusion_mode", 1)
-    cmd.set("ambient_occlusion_scale", 15)
-    cmd.set("ambient_occlusion_smooth", 15)
-    cmd.set("ambient", 0.35)
-    cmd.set("direct", 0.55)
-    cmd.set("specular", 0.6)
-    cmd.set("shininess", 60)
-    cmd.set("spec_power", 200)
-    cmd.set("spec_reflect", 1.5)
-    cmd.set("reflect", 0.25)
-    cmd.set("depth_cue", 0)
+from orient import orient_long_axis_vertical, orient_look_down_on_plane  # noqa: E402
+from pymol_scene import add_render_flags, apply_material_aoshiny, cmd, ray_trace_and_save  # noqa: E402
 
 
 def compute_motif_alignment(protein_atoms, contig_map):
@@ -306,7 +173,7 @@ def build_figure(panel_spec_path, out_png, protein_color, hotspot_color, ligand_
     if orient_toward == "hotspot":
         orient_look_down_on_plane(hotspot_sel, protein_sel, "reference or design")
     else:
-        orient_scene_vertically(protein_sel, ligand_sel, "reference or design")
+        orient_long_axis_vertical(f"{protein_sel} and name CA and polymer", ligand_sel, "reference or design")
 
     cmd.hide("everything", "reference or design")
 
@@ -331,10 +198,7 @@ def build_figure(panel_spec_path, out_png, protein_color, hotspot_color, ligand_
     # narrowing the 3D camera.
     cmd.zoom("reference or design", buffer=zoom_buffer)
 
-    cmd.set("ray_trace_mode", 0)
-    cmd.set("antialias", 2)
-    cmd.ray(width, height)
-    cmd.png(out_png, dpi=dpi)
+    ray_trace_and_save(out_png, width, height, dpi)
 
     if trim:
         trimmed = trim_to_content(Image.open(out_png), bg=bg, pad=trim_pad)
@@ -366,10 +230,7 @@ def main():
                          help="Skip cropping the rendered PNG down to its content bounding box (by default this "
                               "runs after the pan/zoom above, removing excess background margin for a tighter panel)")
     parser.add_argument("--trim-pad", type=int, default=20, help="Pixels of background left around the content after trimming (default: 20)")
-    parser.add_argument("--width", type=int, default=1800)
-    parser.add_argument("--height", type=int, default=1800)
-    parser.add_argument("--dpi", type=int, default=300)
-    parser.add_argument("--bg", default="white")
+    add_render_flags(parser, default_height=1800)
     args = parser.parse_args()
 
     build_figure(

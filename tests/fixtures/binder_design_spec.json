@@ -1,0 +1,13 @@
+{
+  "buried": {
+    "input": "./complex_ab.pdb",
+    "ligand": "IAI",
+    "select_buried": {"IAI": "C1,C2,N9"}
+  },
+  "partial": {
+    "input": "./complex_ab.pdb",
+    "ligand": "IAI",
+    "select_exposed": {"IAI": "C3,C4"},
+    "select_buried": {"IAI": "C1,C2"}
+  }
+}

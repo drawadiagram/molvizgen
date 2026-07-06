@@ -8,9 +8,10 @@ molvizgen is a small collection of CLI scripts for building a
 SELECT → GENERATE → ASSEMBLE pipeline over sets of protein structure (PDB)
 files: enumerate candidate structures, filter them down (by score or by
 structural diversity), render publication-style PyMOL figures or an RMSD
-heatmap, and assemble the results into montages. There is no test suite,
-linter, or build step — each script is a standalone `argparse` CLI, runnable
-directly.
+heatmap, and assemble the results into montages. There is no linter or build
+step — each script is a standalone `argparse` CLI, runnable directly. A
+`pytest` suite under `tests/` covers `lib/`'s shared logic and a CLI smoke
+test per pipeline stage (see Commands below).
 
 This repo holds only code. It operates on PDB files that live elsewhere
 (pass a directory via `--dir`/`dir:`); it has no data of its own.
@@ -19,8 +20,19 @@ This repo holds only code. It operates on PDB files that live elsewhere
 
 Everything requires a Python environment with the PyMOL Python API
 importable (`import pymol`), plus `numpy`, `PyYAML`, `Pillow`, `matplotlib`,
-and `marimo` (only for the notebook). There's no dependency manifest in this
-repo — these must already be present in whatever `python3` is on `PATH`.
+`pytest` (only for the test suite), and `marimo` (only for the notebook).
+There's no dependency manifest in this repo — these must already be present
+in whatever `python3` is on `PATH`.
+
+Run the test suite:
+```
+pytest tests/
+```
+Tests run against small fixture PDBs/manifests under `tests/fixtures/`
+(including a real PDZ-domain/peptide complex and an unrelated fold, both
+extracted from local reference structures) rather than the large external
+directories the `examples/` pipelines point at, so the suite never depends
+on data outside the repo.
 
 Run a single step directly, e.g.:
 ```
@@ -113,6 +125,29 @@ for structures that don't use that convention. `ligand_hotspot_figure.py`
 applies the same long-axis-to-vertical orientation to a lone ligand (no
 second chain to twist toward the camera, since there's no protein in that
 figure at all).
+
+**That auto-orientation logic, and the PyMOL rendering boilerplate every
+GENERATE script needs, live in `lib/`, not in each figure script.**
+`lib/geometry.py` is the pure-numpy half (no PyMOL calls): `rotation_to_align`
+(Rodrigues' formula) and the PCA helpers `long_axis_pca`/`plane_pca`.
+`lib/pymol_scene.py` is the PyMOL-coupled half: importing it launches the
+headless PyMOL session as a side effect (the same "import this instead of
+calling `pymol.finish_launching` yourself" idiom `lib/rmsd.py` also uses),
+plus `apply_material_aoshiny` (the shiny/AO/no-shadows settings),
+`ray_trace_and_save`, and `add_render_flags` for the `--width/--height/--dpi/--bg`
+flags every figure script exposes identically. `lib/orient.py` builds the
+actual scene-orientation routines on top of both: `orient_long_axis_vertical`
+is the one function behind all three "long axis vertical, optionally twist
+something else toward the camera" conventions above (`face_sel=None` skips
+the twist, which is what gives `ligand_hotspot_figure.py`'s no-twist
+behavior); `orient_look_down_on_plane` (used by
+`motif_superposition_figure.py`'s `--orient-toward hotspot`, see below) is a
+distinct plane-normal-to-camera algorithm, not a variant of the long-axis
+one. Every GENERATE script (`pdz_figure.py`, `generate_figure.py`,
+`ligand_hotspot_figure.py`, `motif_superposition_figure.py`) is a thin
+domain-specific layer over these three modules — new figure scripts should
+extend `lib/orient.py`'s functions with new parameters rather than
+re-deriving this math locally.
 
 **Atom-name selection (`lib/ligand_select.py`) is a second selection
 convention alongside chain ids**, for figures that need to split a single
@@ -214,13 +249,15 @@ find the actual protein+ligand complex PDB worth rendering.
 optionally rescales the whole montage to a target width — intermediate
 montages in a larger assembly should pass `--no-scale` and only the final
 assemble step should scale, so repeated resizing doesn't degrade image
-quality. Before tiling, both it and `assemble_panel_layout.py` trim each
-source image to its content bounding box via `lib/imgtrim.py`
-(`trim_to_content`, `--no-trim` to skip) — every GENERATE script rays-traces
-onto a fixed canvas with its own zoom buffer, so raw PNGs otherwise carry
-inconsistent background margin that's most visible when panels have
-different aspect ratios. `assemble_panel_layout.py` handles a layout a
-uniform `rows x cols` grid can't express: a wide "problem" panel spanning
-the full height of an adjacent `rows x cols` grid of "design" panels (built
-by calling `montage_figures.py`'s `build_montage()` directly), the left
-panel's width computed as a fraction of the *final* canvas.
+quality. The tiling/scaling logic itself (`build_montage`, `scale_to_width`)
+lives in `lib/montage.py`, shared with `assemble_panel_layout.py` rather than
+each script carrying its own copy; both scripts are thin CLI wrappers over
+it. Before tiling, `build_montage` trims each source image to its content
+bounding box via `lib/imgtrim.py` (`trim_to_content`, `--no-trim` to skip) —
+every GENERATE script rays-traces onto a fixed canvas with its own zoom
+buffer, so raw PNGs otherwise carry inconsistent background margin that's
+most visible when panels have different aspect ratios. `assemble_panel_layout.py`
+handles a layout a uniform `rows x cols` grid can't express: a wide "problem"
+panel spanning the full height of an adjacent `rows x cols` grid of "design"
+panels (built by calling `lib/montage.py`'s `build_montage()` directly), the
+left panel's width computed as a fraction of the *final* canvas.
