@@ -174,7 +174,17 @@ the scaffold but preserves every free-residue run-length, so the position
 arithmetic for a given original motif residue comes out the same regardless
 of how many redesign generations produced the fold being examined (see the
 discontinuous-scaffolds project's own CLAUDE.md, "Adaptive branching for
-failing models", for that state machine).
+failing models", for that state machine). `parse_anchor_residues` parses
+that project's `analysis.py` Step 8 `anchor_residues` CSV cell (e.g.
+"A54,A56,A58,A59": motif residues well-predicted enough to hold fixed in a
+subsequent redesign) into the same `(chain, resnum)` key shape;
+`anchor_chai_positions` composes that with `contig_to_chai_positions` to get
+the chai sequence positions those residues occupy — positions that, thanks
+to the same redesign-invariant arithmetic, still identify the *same*
+physical residues in a later redesign generation's own fold, letting a
+figure highlight "the portion that was subject to anchoring" using only an
+earlier generation's `anchor_residues` field (see
+`examples/discontinuous_scaffolds_anchor_progression/`).
 
 **`lib/kabsch.py` complements `lib/rmsd.py`'s cealign-based alignment with
 point-correspondence alignment**: given two paired Nx3 coordinate arrays
@@ -278,6 +288,34 @@ that safe pan/zoom and the ray-trace does `build_figure()` reuse
 to crop the rendered PNG's excess background margin — a 2D crop of a
 complete render, not a 3D camera move, so a close, content-filling
 composition can never lose part of the structure.
+
+**`motif_superposition_figure.py` also supports splitting its hot-spot
+spheres into two colors**, via an optional `anchor_positions` field (a list
+of chai sequence positions) in the panel-spec JSON plus a new `--anchor-color`
+flag (default pink) — added for
+`examples/discontinuous_scaffolds_anchor_progression/` without changing any
+existing flag's default, so every prior panel spec (with no `anchor_positions`
+key) keeps rendering identically, entirely in `--hotspot-color`.
+`build_hotspot_selection()` now returns two selections (`anchor_sel`,
+`rest_sel`) instead of one, splitting each motif residue by whether its chai
+sequence position is in `anchor_positions`. That example's application-
+specific `find_anchor_progression.py` lookup step resolves one input motif's
+*design progression* across whichever of its several independent pipeline
+runs (see the discontinuous-scaffolds project's per-batch `disco_p<N>_0`,
+`..._R`, `..._R_R`, ... redesign lineage) actually ends in a passing model,
+then renders two panels from it: the root generation (anchor residues just
+identified, from its own `campaign_analysis.csv` `anchor_residues` field) and
+the passing redesign generation (the same residues highlighted again, now
+reading as "the portion that was subject to anchoring"). Both panels use the
+*root* generation's `design_json` (never a redesign's own `redesign.json`) —
+a redesign's `select_fixed_atoms`/contig keys are renumbered relative to the
+true reference PDB (see `create_redesign.py`), so they can't serve as
+`compute_motif_alignment()`'s `reference and chain ... resi ...` selector;
+the root contig's chai-sequence-position arithmetic is invariant across
+redesign generations (same free-residue run lengths, only the fixed-residue
+labels differ), so reusing it against a later generation's folded
+`design_cif` still resolves every true motif residue to its correct position
+in that fold.
 
 **`find_structures_smallmol.py` mirrors an external pipeline's layout and
 state machine** (ImpressBasePipeline's `SmallMoleculeBindingPipeline` — see

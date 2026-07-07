@@ -100,3 +100,41 @@ def ligand_resn_selection(base_selection, ligand_resns):
     if not resns:
         return "none"
     return f"({base_selection}) and resn {'+'.join(resns)}"
+
+
+def parse_anchor_residues(anchor_residues_csv):
+    """Parse the discontinuous-scaffolds project's analysis.py Step 8
+    `anchor_residues` CSV cell (e.g. "A54,A56,A58,A59": motif residues whose
+    backbone atoms all fell under the RMSD threshold, i.e. candidates a
+    subsequent redesign would hold fixed) into a set of (chain, resnum)
+    tuples — the same key shape `contig_to_chai_positions` and
+    `split_fixed_atoms` use. Empty string -> empty set."""
+    residues = set()
+    for token in anchor_residues_csv.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        m = _PROTEIN_RES_RE.match(token)
+        if not m:
+            raise ValueError(f"anchor residue token {token!r} doesn't match Chain+ResNum")
+        residues.add((m.group(1), int(m.group(2))))
+    return residues
+
+
+def anchor_chai_positions(anchor_residues_csv, contig_str):
+    """Map an `anchor_residues` cell to the set of chai sequence positions
+    those residues occupy under `contig_str` (that generation's own contig).
+    Because `contig_to_chai_positions`'s position arithmetic is invariant
+    across redesign generations (see module docstring), this position set
+    stays valid for identifying the *same* physical residues in any later
+    redesign generation's fold too — even though that generation's own
+    `select_fixed_atoms` keys are renumbered relative to the original
+    reference PDB (an anchor residue carried over from a prior generation is
+    renamed to its chai sequence position, e.g. an original "A59" surviving
+    as a redesign's "A36"; a fresh, non-anchor reference residue is instead
+    renumbered starting at 900 — see the discontinuous-scaffolds project's
+    `create_redesign.py`). This is what lets a figure highlight "the portion
+    that was subject to anchoring" in a redesign's fold using only the
+    anchor residues identified in an *earlier* generation."""
+    contig_map = contig_to_chai_positions(contig_str)
+    return {contig_map[res] for res in parse_anchor_residues(anchor_residues_csv) if res in contig_map}

@@ -1,0 +1,64 @@
+# Two-panel row: the discontinuous-scaffolds design progression for a
+# single input motif (M0157_1qh5) across one pipeline run's redesign
+# lineage. Left panel is the *initial* design (the root pipeline's
+# best-fold model, which failed rmsd_threshold) with its anchor residues
+# highlighted — the motif residues identified as well-predicted enough to
+# hold fixed in the redesign that followed. Right panel is the *final*
+# design (the redesign generation that passed rmsd_threshold), with the
+# same residues highlighted to show the portion of the motif that was
+# subject to anchoring during that redesign. Both panels are built by
+# ../../motif_superposition_figure.py's new `anchor_positions`/
+# `--anchor-color` support (see ../../lib/rfd3_motif_select.py's
+# `anchor_chai_positions` for the new selection-library code this relies
+# on).
+#
+# Prerequisite (produces the panel-spec JSONs this pipeline's render steps
+# read — see find_anchor_progression.py's docstring for why this is a
+# separate, application-specific lookup step rather than a molvizgen FIND
+# kind):
+#   ./resolve_progression.sh
+#
+# Then, run from this directory:
+#   cd examples/discontinuous_scaffolds_anchor_progression && python3 ../../run_pipeline.py anchor_progression_pipeline.yaml
+
+out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression
+
+steps:
+  - name: panel_initial
+    kind: render
+    args:
+      script: motif_superposition_figure.py
+      input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0157_1qh5_initial.json
+      protein_color: yellow
+      hotspot_color: purple
+      anchor_color: pink
+      ligand_color: blue
+      width: 1800
+      height: 1800
+      out: panel_initial_M0157_1qh5.png
+
+  - name: panel_final
+    kind: render
+    args:
+      script: motif_superposition_figure.py
+      input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0157_1qh5_final.json
+      protein_color: yellow
+      hotspot_color: purple
+      anchor_color: pink
+      ligand_color: blue
+      width: 1800
+      height: 1800
+      out: panel_final_M0157_1qh5.png
+
+  - name: row
+    kind: assemble
+    args:
+      images:
+        - "${panel_initial.image}"
+        - "${panel_final.image}"
+      rows: 1
+      cols: 2
+      padding: 30
+      trim_pad: 15
+      target_width_in: 10
+      out: anchor_progression_row.png

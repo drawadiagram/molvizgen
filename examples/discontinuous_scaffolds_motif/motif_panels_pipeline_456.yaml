@@ -1,0 +1,65 @@
+# Three-panel row subset of motif_panels_pipeline.yaml: only the
+# RESIDUE_ISLAND_COUNT 4/5/6 designs (M0349_1e3v, M0078_1al6, M0157_1qh5),
+# re-rendered against the current motif_superposition_figure.py /
+# lib/rfd3_motif_select.py / lib/kabsch.py (the existing panel_4islands/
+# panel_5islands/panel_6islands PNGs under molviz_motif_panels were rendered
+# before the "extract shared GENERATE/lib logic" refactor).
+#
+# Prerequisite: panel-spec JSONs already resolved by resolve_panels.sh (see
+# motif_panels_pipeline.yaml) — reused here as-is, no re-resolution needed.
+#
+# Run from this directory:
+#   python3 ../../run_pipeline.py motif_panels_pipeline_456.yaml
+
+out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels
+
+steps:
+  - name: panel_4islands
+    kind: render
+    args:
+      script: motif_superposition_figure.py
+      input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0349_1e3v.json
+      protein_color: yellow
+      hotspot_color: purple
+      ligand_color: blue
+      width: 1800
+      height: 1800
+      out: panel_4islands_M0349_1e3v.png
+
+  - name: panel_5islands
+    kind: render
+    args:
+      script: motif_superposition_figure.py
+      input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0078_1al6.json
+      protein_color: yellow
+      hotspot_color: purple
+      ligand_color: blue
+      width: 1800
+      height: 1800
+      out: panel_5islands_M0078_1al6.png
+
+  - name: panel_6islands
+    kind: render
+    args:
+      script: motif_superposition_figure.py
+      input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0157_1qh5.json
+      protein_color: yellow
+      hotspot_color: purple
+      ligand_color: blue
+      width: 1800
+      height: 1800
+      out: panel_6islands_M0157_1qh5.png
+
+  - name: row_456islands
+    kind: assemble
+    args:
+      images:
+        - "${panel_4islands.image}"
+        - "${panel_5islands.image}"
+        - "${panel_6islands.image}"
+      rows: 1
+      cols: 3
+      padding: 30
+      trim_pad: 15
+      target_width_in: 9
+      out: motif_panels_row_456islands.png

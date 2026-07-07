@@ -3,9 +3,11 @@ import os
 import pytest
 
 from rfd3_motif_select import (
+    anchor_chai_positions,
     contig_to_chai_positions,
     ligand_resn_selection,
     load_design_spec,
+    parse_anchor_residues,
     parse_atom_names,
     split_fixed_atoms,
 )
@@ -62,3 +64,32 @@ def test_ligand_resn_selection_builds_resn_selector():
 
 def test_ligand_resn_selection_empty_is_none():
     assert ligand_resn_selection("reference", []) == "none"
+
+
+def test_parse_anchor_residues_parses_csv_cell():
+    assert parse_anchor_residues("A54,A56,A58,A59") == {("A", 54), ("A", 56), ("A", 58), ("A", 59)}
+
+
+def test_parse_anchor_residues_empty_is_empty_set():
+    assert parse_anchor_residues("") == set()
+
+
+def test_parse_anchor_residues_raises_on_malformed_token():
+    with pytest.raises(ValueError):
+        parse_anchor_residues("A54,???")
+
+
+def test_anchor_chai_positions_maps_through_contig():
+    # Same contig as the module docstring example: A54, A56, A58, A59 sit at
+    # chai sequence positions 1, 2, 3, 4 (no free runs between them).
+    contig = "A54,0,A56,0,A58,0,A59"
+    assert anchor_chai_positions("A59", contig) == {4}
+    assert anchor_chai_positions("A54,A59", contig) == {1, 4}
+
+
+def test_anchor_chai_positions_ignores_residues_absent_from_contig():
+    assert anchor_chai_positions("A999", "A54,0,A56") == set()
+
+
+def test_anchor_chai_positions_empty_anchor_residues_is_empty_set():
+    assert anchor_chai_positions("", "A54,0,A56") == set()
