@@ -23,9 +23,9 @@ Reads two things per model:
     model's `contig`, `ligand`, and `select_fixed_atoms` (lib/rfd3_motif_select.py)
 
 An optional `anchor_positions` field in `panel_spec` (a list of chai
-sequence positions, e.g. `[36]`) splits the motif hot-spot spheres into two
+sequence positions, e.g. `[36]`) splits the motif hot-spot highlight into two
 groups instead of one: motif residues at one of those positions are colored
-`--anchor-color` (default pink) instead of `--hotspot-color`, for
+`--anchor-color` (default burnt orange) instead of `--hotspot-color`, for
 highlighting which part of the motif is an anchor residue — one identified
 by the discontinuous-scaffolds project's analysis.py as well-predicted
 enough to hold fixed in a subsequent redesign, or (since chai sequence
@@ -37,18 +37,30 @@ behavior exactly. See examples/discontinuous_scaffolds_anchor_progression/
 for a worked two-panel (initial design / final redesign) pipeline built on
 this.
 
+Both groups are shown per `--motif-representation`: `spheres` (default,
+unchanged from the original behavior) draws each group's named
+`select_fixed_atoms` atoms as spheres, colored `--hotspot-color`/
+`--anchor-color` respectively; `cartoon` instead just colors each group's
+residues' whole cartoon segment, with no added spheres at all — used by
+examples/discontinuous_scaffolds_anchor_progression/ for a spheres-free
+figure where the anchor highlight is a colored cartoon segment like the
+rest of the motif.
+
 The reference structure and the design fold are two independent
 coordinate frames — the Kabsch alignment (lib/kabsch.py) that places the
 design's motif into the reference's frame is computed from backbone (N,
 CA, C, O) atoms of every motif residue, using the contig's chai-sequence-
 position mapping to find each residue's equivalent atoms in the design
-fold; the actual "hot spot" atoms shown as spheres are whatever atom names
-`select_fixed_atoms` names for that residue (often a sidechain subset).
+fold; the actual hot-spot atoms shown (as spheres or a colored cartoon
+segment, see above) are whatever atom names `select_fixed_atoms` names for
+that residue (often a sidechain subset) or, in `cartoon` mode, the whole
+residue.
 
 Usage:
     python3 motif_superposition_figure.py <panel_spec.json> <output.png> \
         [--protein-color yellow] [--hotspot-color purple] [--ligand-color blue] \
-        [--sphere-scale 0.5] [--ligand-representation licorice|surface] \
+        [--motif-representation spheres|cartoon] [--sphere-scale 0.5] \
+        [--ligand-representation licorice|surface] \
         [--ligand-transparency 0.5] [--orient-toward ligand|hotspot] \
         [--zoom-buffer 5.0] [--no-trim] [--trim-pad 20] \
         [--width 1800] [--height 1800] [--dpi 300] [--bg white]
@@ -97,37 +109,57 @@ def compute_motif_alignment(protein_atoms, contig_map):
 
 BACKBONE_ATOMS = ("N", "CA", "C", "O")
 
+# PyMOL has no built-in "burnt orange" (its stock "orange"/"tv_orange" are
+# brighter and more saturated); register the standard burnt-orange hex
+# (#CC5500) as a named color so --anchor-color burnt_orange (the default)
+# works like any built-in color name.
+BURNT_ORANGE_RGB = (0.8, 0.333, 0.0)
 
-def build_hotspot_selection(protein_atoms, contig_map, anchor_positions=None):
+
+def build_hotspot_selection(protein_atoms, contig_map, anchor_positions=None, by_residue=False):
     """PyMOL selection(s) (on the 'design' object, post-alignment) for the
-    hot-spot atoms named in select_fixed_atoms, at their chai sequence
-    positions. `select_fixed_atoms` names the atoms RFDiffusion3 held fixed
-    during backbone generation, but the downstream LigandMPNN sequence
-    design step is free to redesign a position's residue identity unless
-    that position was *also* pinned for sequence design — so a motif
-    residue named only by its sidechain atoms (e.g. an Arg's "NE,CD,CZ,CG,
-    NH1,NH2") can still end up a different residue in the folded design.
-    When none of the named atoms survive at a residue, fall back to its
-    backbone atoms (always present) so the position still reads as a hot
-    spot rather than silently vanishing.
+    motif residues named in select_fixed_atoms, at their chai sequence
+    positions, split into an anchor group (chai sequence position in
+    `anchor_positions`) and everything else.
 
-    Returns (anchor_sel, rest_sel): motif residues whose chai sequence
+    When `by_residue` is False (the original, sphere-rendered behavior),
+    both groups are selected by their named atoms: `select_fixed_atoms`
+    names the atoms RFDiffusion3 held fixed during backbone generation, but
+    the downstream LigandMPNN sequence design step is free to redesign a
+    position's residue identity unless that position was *also* pinned for
+    sequence design — so a motif residue named only by its sidechain atoms
+    (e.g. an Arg's "NE,CD,CZ,CG,NH1,NH2") can still end up a different
+    residue in the folded design. When none of the named atoms survive at a
+    residue, fall back to its backbone atoms (always present) so the
+    position still reads as a hot spot rather than silently vanishing.
+
+    When `by_residue` is True, both groups are instead selected by *whole
+    residue* — the right shape for coloring a cartoon segment rather than
+    drawing spheres, since cartoon rendering doesn't care which specific
+    atoms are named.
+
+    Returns (anchor_sel, hotspot_sel): motif residues whose chai sequence
     position is in `anchor_positions` go into `anchor_sel`, everything else
-    into `rest_sel`. With `anchor_positions` empty/None, `anchor_sel` is
-    always "none" and `rest_sel` reproduces the original single-selection
-    behavior."""
+    into `hotspot_sel`. With `anchor_positions` empty/None, `anchor_sel` is
+    always "none" and every motif residue falls into `hotspot_sel`."""
     anchor_positions = anchor_positions or set()
-    anchor_terms, rest_terms = [], []
+    anchor_terms, hotspot_terms = [], []
     for (chain, resnum), atom_names in protein_atoms.items():
         chai_pos = contig_map.get((chain, resnum))
-        if chai_pos is None or not atom_names:
+        if chai_pos is None:
             continue
-        present = [a for a in atom_names if cmd.count_atoms(f"design and resi {chai_pos} and name {a}") == 1]
-        term = f"(design and resi {chai_pos} and name {'+'.join(present or BACKBONE_ATOMS)})"
-        (anchor_terms if chai_pos in anchor_positions else rest_terms).append(term)
+        is_anchor = chai_pos in anchor_positions
+        if by_residue:
+            term = f"(design and resi {chai_pos})"
+        else:
+            if not atom_names:
+                continue
+            present = [a for a in atom_names if cmd.count_atoms(f"design and resi {chai_pos} and name {a}") == 1]
+            term = f"(design and resi {chai_pos} and name {'+'.join(present or BACKBONE_ATOMS)})"
+        (anchor_terms if is_anchor else hotspot_terms).append(term)
     anchor_sel = " or ".join(anchor_terms) if anchor_terms else "none"
-    rest_sel = " or ".join(rest_terms) if rest_terms else "none"
-    return anchor_sel, rest_sel
+    hotspot_sel = " or ".join(hotspot_terms) if hotspot_terms else "none"
+    return anchor_sel, hotspot_sel
 
 
 def show_ligand(ligand_sel, representation, color, transparency):
@@ -155,8 +187,10 @@ def show_ligand(ligand_sel, representation, color, transparency):
 
 
 def build_figure(panel_spec_path, out_png, protein_color, hotspot_color, anchor_color, ligand_color,
-                  sphere_scale, ligand_representation, ligand_transparency, orient_toward,
-                  zoom_buffer, trim, trim_pad, width, height, dpi, bg):
+                  motif_representation, sphere_scale, ligand_representation, ligand_transparency,
+                  orient_toward, zoom_buffer, trim, trim_pad, width, height, dpi, bg):
+    cmd.set_color("burnt_orange", list(BURNT_ORANGE_RGB))
+
     with open(panel_spec_path) as f:
         panel = json.load(f)
 
@@ -182,7 +216,9 @@ def build_figure(panel_spec_path, out_png, protein_color, hotspot_color, anchor_
     R, t = compute_motif_alignment(protein_atoms, contig_map)
     cmd.transform_selection("design", as_homogeneous(R, t), homogenous=1)
 
-    anchor_sel, hotspot_sel = build_hotspot_selection(protein_atoms, contig_map, anchor_positions)
+    anchor_sel, hotspot_sel = build_hotspot_selection(
+        protein_atoms, contig_map, anchor_positions, by_residue=(motif_representation == "cartoon"),
+    )
     if cmd.count_atoms(anchor_sel) == 0 and cmd.count_atoms(hotspot_sel) == 0:
         sys.exit(f"{model_name}: hot-spot selections matched no atoms in the aligned design")
 
@@ -211,14 +247,16 @@ def build_figure(panel_spec_path, out_png, protein_color, hotspot_color, anchor_
     show_ligand(ligand_sel, ligand_representation, ligand_color, ligand_transparency)
 
     if cmd.count_atoms(hotspot_sel) > 0:
-        cmd.show("spheres", hotspot_sel)
-        cmd.set("sphere_scale", sphere_scale, hotspot_sel)
         cmd.color(hotspot_color, hotspot_sel)
+        if motif_representation == "spheres":
+            cmd.show("spheres", hotspot_sel)
+            cmd.set("sphere_scale", sphere_scale, hotspot_sel)
 
     if cmd.count_atoms(anchor_sel) > 0:
-        cmd.show("spheres", anchor_sel)
-        cmd.set("sphere_scale", sphere_scale, anchor_sel)
         cmd.color(anchor_color, anchor_sel)
+        if motif_representation == "spheres":
+            cmd.show("spheres", anchor_sel)
+            cmd.set("sphere_scale", sphere_scale, anchor_sel)
 
     apply_material_aoshiny()
 
@@ -245,10 +283,17 @@ def main():
     parser.add_argument("output_png")
     parser.add_argument("--protein-color", default="yellow", help="PyMOL color for the reference protein cartoon (default: yellow)")
     parser.add_argument("--hotspot-color", default="purple", help="PyMOL color for the design's motif hot-spot atom spheres (default: purple)")
-    parser.add_argument("--anchor-color", default="pink",
+    parser.add_argument("--anchor-color", default="burnt_orange",
                          help="PyMOL color for motif atoms named in the panel spec's optional 'anchor_positions' "
-                              "field (default: pink); atoms not in that list keep --hotspot-color")
+                              "field (default: burnt_orange, a custom #CC5500 registered at run time since PyMOL "
+                              "has no built-in burnt orange); atoms not in that list keep --hotspot-color")
     parser.add_argument("--ligand-color", default="blue", help="PyMOL color for the reference ligand (default: blue)")
+    parser.add_argument("--motif-representation", default="spheres", choices=["spheres", "cartoon"],
+                         help="How to highlight every motif residue (both hot-spot and, if the panel spec sets "
+                              "'anchor_positions', anchor residues): 'spheres' (default, original behavior) draws "
+                              "each group's select_fixed_atoms atoms as spheres, colored --hotspot-color/"
+                              "--anchor-color respectively; 'cartoon' instead just colors each group's whole "
+                              "cartoon segment, with no spheres at all.")
     parser.add_argument("--sphere-scale", type=float, default=0.5, help="Sphere radius scale for the hot-spot atoms (default: 0.5)")
     parser.add_argument("--ligand-representation", default="licorice", choices=["licorice", "surface"],
                          help="How to render the reference ligand (default: licorice)")
@@ -272,8 +317,8 @@ def main():
 
     build_figure(
         args.panel_spec, args.output_png, args.protein_color, args.hotspot_color, args.anchor_color,
-        args.ligand_color, args.sphere_scale, args.ligand_representation, args.ligand_transparency,
-        args.orient_toward, args.zoom_buffer, not args.no_trim, args.trim_pad,
+        args.ligand_color, args.motif_representation, args.sphere_scale, args.ligand_representation,
+        args.ligand_transparency, args.orient_toward, args.zoom_buffer, not args.no_trim, args.trim_pad,
         args.width, args.height, args.dpi, args.bg,
     )
     print(f"Wrote {args.output_png}")
