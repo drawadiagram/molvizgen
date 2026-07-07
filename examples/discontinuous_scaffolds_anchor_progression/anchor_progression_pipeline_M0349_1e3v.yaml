@@ -1,0 +1,66 @@
+# Two-panel row: the discontinuous-scaffolds design progression for
+# M0349_1e3v, a second worked model alongside anchor_progression_pipeline.yaml's
+# M0157_1qh5 — chosen as the model with the most anchor residues identified
+# at its root generation (2: A40, A100, vs. M0157_1qh5's 1) among every
+# model whose redesign lineage actually ends in a passing model (see
+# find_anchor_progression.py's docstring for why not every model's lineage
+# converges below rmsd_threshold at all). Left panel is the *initial*
+# design (the root pipeline's best-fold model, which narrowly failed
+# rmsd_threshold at 1.544) with its anchor residues highlighted. Right
+# panel is the *final* design (the redesign generation that passed at
+# 1.491), with the same residues highlighted to show the portion of the
+# motif that was subject to anchoring during that redesign. Anchor and
+# hot-spot residues are both shown as colored cartoon segments (no
+# spheres), via ../../motif_superposition_figure.py's `anchor_positions`/
+# `--anchor-color`/`--motif-representation cartoon` support.
+#
+# Prerequisite (produces the panel-spec JSONs this pipeline's render steps
+# read):
+#   ./resolve_progression.sh M0349_1e3v
+#
+# Then, run from this directory:
+#   cd examples/discontinuous_scaffolds_anchor_progression && python3 ../../run_pipeline.py anchor_progression_pipeline_M0349_1e3v.yaml
+
+out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression
+
+steps:
+  - name: panel_initial
+    kind: render
+    args:
+      script: motif_superposition_figure.py
+      input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_initial.json
+      protein_color: yellow
+      hotspot_color: purple
+      anchor_color: burnt_orange
+      motif_representation: cartoon
+      ligand_color: blue
+      width: 1800
+      height: 1800
+      out: panel_initial_M0349_1e3v.png
+
+  - name: panel_final
+    kind: render
+    args:
+      script: motif_superposition_figure.py
+      input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_final.json
+      protein_color: yellow
+      hotspot_color: purple
+      anchor_color: burnt_orange
+      motif_representation: cartoon
+      ligand_color: blue
+      width: 1800
+      height: 1800
+      out: panel_final_M0349_1e3v.png
+
+  - name: row
+    kind: assemble
+    args:
+      images:
+        - "${panel_initial.image}"
+        - "${panel_final.image}"
+      rows: 1
+      cols: 2
+      padding: 30
+      trim_pad: 15
+      target_width_in: 10
+      out: anchor_progression_row_M0349_1e3v.png

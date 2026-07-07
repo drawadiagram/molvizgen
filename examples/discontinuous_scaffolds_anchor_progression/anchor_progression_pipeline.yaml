@@ -6,20 +6,26 @@
 # hold fixed in the redesign that followed. Right panel is the *final*
 # design (the redesign generation that passed rmsd_threshold), with the
 # same residues highlighted to show the portion of the motif that was
-# subject to anchoring during that redesign. Both panels are built by
+# subject to anchoring during that redesign. Anchor residues are drawn as
+# burnt-orange spheres; the rest of the motif hot spot is shown as a
+# purple-colored cartoon segment rather than spheres, via
 # ../../motif_superposition_figure.py's new `anchor_positions`/
-# `--anchor-color` support (see ../../lib/rfd3_motif_select.py's
-# `anchor_chai_positions` for the new selection-library code this relies
-# on).
+# `--anchor-color`/`--motif-representation cartoon` support (see
+# ../../lib/rfd3_motif_select.py's `anchor_chai_positions` for the new
+# selection-library code this relies on).
 #
 # Prerequisite (produces the panel-spec JSONs this pipeline's render steps
 # read — see find_anchor_progression.py's docstring for why this is a
 # separate, application-specific lookup step rather than a molvizgen FIND
 # kind):
-#   ./resolve_progression.sh
+#   ./resolve_progression.sh          # defaults to M0157_1qh5
 #
 # Then, run from this directory:
 #   cd examples/discontinuous_scaffolds_anchor_progression && python3 ../../run_pipeline.py anchor_progression_pipeline.yaml
+#
+# See anchor_progression_pipeline_M0349_1e3v.yaml for a second worked model
+# (RESIDUE_ISLAND_COUNT=4, the model with the most root-generation anchor
+# residues among every model whose redesign lineage ends in a passing model).
 
 out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression
 
@@ -31,7 +37,8 @@ steps:
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0157_1qh5_initial.json
       protein_color: yellow
       hotspot_color: purple
-      anchor_color: pink
+      anchor_color: burnt_orange
+      motif_representation: cartoon
       ligand_color: blue
       width: 1800
       height: 1800
@@ -44,7 +51,8 @@ steps:
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0157_1qh5_final.json
       protein_color: yellow
       hotspot_color: purple
-      anchor_color: pink
+      anchor_color: burnt_orange
+      motif_representation: cartoon
       ligand_color: blue
       width: 1800
       height: 1800

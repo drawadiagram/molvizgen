@@ -290,20 +290,29 @@ complete render, not a 3D camera move, so a close, content-filling
 composition can never lose part of the structure.
 
 **`motif_superposition_figure.py` also supports splitting its hot-spot
-spheres into two colors**, via an optional `anchor_positions` field (a list
+highlight into two groups**, via an optional `anchor_positions` field (a list
 of chai sequence positions) in the panel-spec JSON plus a new `--anchor-color`
-flag (default pink) — added for
+flag (default `burnt_orange`, a custom #CC5500 registered via `cmd.set_color`
+at run time since PyMOL has no built-in burnt orange) — added for
 `examples/discontinuous_scaffolds_anchor_progression/` without changing any
 existing flag's default, so every prior panel spec (with no `anchor_positions`
-key) keeps rendering identically, entirely in `--hotspot-color`.
-`build_hotspot_selection()` now returns two selections (`anchor_sel`,
-`rest_sel`) instead of one, splitting each motif residue by whether its chai
-sequence position is in `anchor_positions`. That example's application-
-specific `find_anchor_progression.py` lookup step resolves one input motif's
-*design progression* across whichever of its several independent pipeline
-runs (see the discontinuous-scaffolds project's per-batch `disco_p<N>_0`,
-`..._R`, `..._R_R`, ... redesign lineage) actually ends in a passing model,
-then renders two panels from it: the root generation (anchor residues just
+key) keeps rendering identically, entirely in `--hotspot-color` spheres.
+Both the anchor group and the remaining, non-anchor hot-spot residues render
+per a new `--motif-representation` flag: `spheres` (default, unchanged)
+draws each group's named `select_fixed_atoms` atoms as spheres, colored
+`--anchor-color`/`--hotspot-color` respectively; `cartoon` instead colors
+each group's residues' whole cartoon segment, with no spheres in the figure
+at all. `build_hotspot_selection()` returns two selections (`anchor_sel`,
+`hotspot_sel`) instead of one, splitting each motif residue by whether its
+chai sequence position is in `anchor_positions`; in `cartoon` mode both
+selections are built at whole-residue granularity (cartoon coloring doesn't
+care which specific atoms are named) rather than the atom-name restriction
+`spheres` mode needs. That example's application-specific
+`find_anchor_progression.py` lookup step resolves one input motif's *design
+progression* across whichever of its several independent pipeline runs (see
+the discontinuous-scaffolds project's per-batch `disco_p<N>_0`, `..._R`,
+`..._R_R`, ... redesign lineage) actually ends in a passing model, then
+renders two panels from it: the root generation (anchor residues just
 identified, from its own `campaign_analysis.csv` `anchor_residues` field) and
 the passing redesign generation (the same residues highlighted again, now
 reading as "the portion that was subject to anchoring"). Both panels use the
@@ -315,7 +324,15 @@ the root contig's chai-sequence-position arithmetic is invariant across
 redesign generations (same free-residue run lengths, only the fixed-residue
 labels differ), so reusing it against a later generation's folded
 `design_cif` still resolves every true motif residue to its correct position
-in that fold.
+in that fold. `anchor_progression_pipeline_M0349_1e3v.yaml` is a second
+worked model in the same example directory (own `resolve_progression.sh
+M0349_1e3v` / `run_anchor_progression_M0349_1e3v.sh`, `resolve_progression.sh`
+now taking the model name as an optional first argument): M0349_1e3v was
+picked by scanning every model's root-generation `anchor_residues` count
+across every batch's redesign lineage that ends in a passing model, keeping
+whichever has the most (2: A40, A100 — vs. M0157_1qh5's 1) — most lineages
+either never converge below `rmsd_threshold` at all or identify at most one
+anchor residue at the root generation.
 
 **`find_structures_smallmol.py` mirrors an external pipeline's layout and
 state machine** (ImpressBasePipeline's `SmallMoleculeBindingPipeline` — see
