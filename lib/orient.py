@@ -74,19 +74,28 @@ def orient_long_axis_vertical(axis_sel, face_sel, whole_sel):
     cmd.transform_selection(whole_sel, as_homogeneous(rot, t), homogenous=1)
 
 
-def orient_look_down_on_plane(plane_sel, behind_sel, whole_sel):
-    """Rotate `whole_sel` rigidly so the camera looks straight down onto the
-    best-fit plane through `plane_sel`'s atoms - its normal faces the camera
-    (+Z) - rather than merely twisting some other axis toward it
-    (orient_long_axis_vertical's convention, which keeps some other
-    selection's long axis vertical and is a poor fit for a close-up of the
-    plane itself).
+def compute_plane_orientation(plane_sel, behind_sel):
+    """(rot, t) rigid transform (see lib/kabsch.py's as_homogeneous) that
+    rotates so the camera looks straight down onto the best-fit plane
+    through `plane_sel`'s atoms - its normal faces the camera (+Z) - rather
+    than merely twisting some other axis toward it (orient_long_axis_vertical's
+    convention, which keeps some other selection's long axis vertical and is
+    a poor fit for a close-up of the plane itself).
 
     The plane normal's sign is chosen so `behind_sel` (e.g. the bulk of the
     protein) ends up behind the plane (-Z), not in front of it, so the
     camera looks at the interface from outside the fold. The plane's own
     largest-variance in-plane direction is made vertical (Y), giving a
-    deterministic "up" without reference to the rest of the protein."""
+    deterministic "up" without reference to the rest of the protein.
+
+    Returned rather than applied directly (see orient_look_down_on_plane,
+    the apply-immediately wrapper most callers want) so a transform computed
+    from one selection/scene can be reapplied verbatim to a *different*
+    scene sharing the same starting coordinate frame - see
+    anchor_progression_zoned_figure.py, which shares one camera orientation,
+    computed only from an initial/root panel's own design, across both
+    panels of a two-panel figure, rather than independently re-fitting a
+    plane per panel."""
     coords = cmd.get_coords(plane_sel)
     try:
         centroid, normal, in_plane_long_axis = plane_pca(coords)
@@ -105,4 +114,12 @@ def orient_look_down_on_plane(plane_sel, behind_sel, whole_sel):
     rot = np.array([v_x, v_y, v_z])
 
     t = centroid - rot @ centroid
+    return rot, t
+
+
+def orient_look_down_on_plane(plane_sel, behind_sel, whole_sel):
+    """Rotate `whole_sel` rigidly per compute_plane_orientation(plane_sel,
+    behind_sel) - the usual case, where the transform is applied immediately
+    to the same scene it was computed from."""
+    rot, t = compute_plane_orientation(plane_sel, behind_sel)
     cmd.transform_selection(whole_sel, as_homogeneous(rot, t), homogenous=1)

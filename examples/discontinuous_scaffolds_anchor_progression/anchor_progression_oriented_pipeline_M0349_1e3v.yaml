@@ -1,0 +1,45 @@
+# Two-panel row: the discontinuous-scaffolds design progression for
+# M0349_1e3v, combining anchor_progression_pipeline_M0349_1e3v.yaml's
+# original representation (flat-colored protein cartoon, motif residues
+# highlighted as colored cartoon segments, no spheres/surface) with
+# anchor_progression_zoned_pipeline_M0349_1e3v.yaml's two improvements:
+#   - Both panels share ONE fixed camera orientation - looking straight down
+#     on the best-fit plane through the *initial* (root) design's own motif
+#     residues - rather than each panel independently re-orienting itself.
+#   - Motif hot-spot residues are pink; the anchor residues (identified at
+#     the root generation, A40/A100) are green (instead of purple/burnt_orange).
+# See ../../anchor_progression_oriented_figure.py.
+#
+# Prerequisite: panel_specs/M0349_1e3v_initial.json / _final.json must
+# already exist (see anchor_progression_pipeline_M0349_1e3v.yaml's header
+# comment: `./resolve_progression.sh M0349_1e3v`).
+#
+# Then, run from this directory:
+#   cd examples/discontinuous_scaffolds_anchor_progression && python3 ../../run_pipeline.py anchor_progression_oriented_pipeline_M0349_1e3v.yaml
+
+out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression
+
+steps:
+  - name: panel_pair
+    kind: render_pair
+    args:
+      script: anchor_progression_oriented_figure.py
+      reference: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_initial.json
+      design: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_final.json
+      width: 1800
+      height: 1800
+      out_reference: panel_initial_oriented_M0349_1e3v.png
+      out_design: panel_final_oriented_M0349_1e3v.png
+
+  - name: row
+    kind: assemble
+    args:
+      images:
+        - "${panel_pair.reference_image}"
+        - "${panel_pair.design_image}"
+      rows: 1
+      cols: 2
+      padding: 30
+      trim_pad: 15
+      target_width_in: 10
+      out: anchor_progression_oriented_row_M0349_1e3v.png

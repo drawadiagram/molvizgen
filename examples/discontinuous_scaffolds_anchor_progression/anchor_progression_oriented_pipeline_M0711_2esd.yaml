@@ -1,0 +1,49 @@
+# Two-panel row: the discontinuous-scaffolds design progression for
+# M0711_2esd (batch p29-p36), another lineage whose redesign incorporated
+# an anchor residue (A284 at the root generation) on its way to a passing
+# final design (root motif_rmsd 1.521 -> final 0.699). Uses
+# ../../anchor_progression_oriented_figure.py: a single fixed camera
+# orientation (looking down on the best-fit plane through the *initial*
+# design's own motif) shared across both panels, flat yellow protein
+# cartoon, hot-spot residues pink, anchor residues green.
+#
+# Note: p29-p36 was originally missing the top-level scripts/mcsa_41-33.json
+# design-spec file every other batch has (needed by find_anchor_progression.py
+# to resolve this model); it was reconstructed from the self-consistent
+# "specification" block already recorded in
+# disco_p33_0/1_backbone_gen/out/mcsa_41-33_M0711_2esd_0_model_0.json, and
+# the reference PDB (identical across batches - a shared MCSA-41 benchmark
+# structure) was copied in from p37-p41's copy.
+#
+# Prerequisite:
+#   ./resolve_progression.sh M0711_2esd
+#
+# Then, run from this directory:
+#   cd examples/discontinuous_scaffolds_anchor_progression && python3 ../../run_pipeline.py anchor_progression_oriented_pipeline_M0711_2esd.yaml
+
+out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression
+
+steps:
+  - name: panel_pair
+    kind: render_pair
+    args:
+      script: anchor_progression_oriented_figure.py
+      reference: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0711_2esd_initial.json
+      design: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0711_2esd_final.json
+      width: 1800
+      height: 1800
+      out_reference: panel_initial_oriented_M0711_2esd.png
+      out_design: panel_final_oriented_M0711_2esd.png
+
+  - name: row
+    kind: assemble
+    args:
+      images:
+        - "${panel_pair.reference_image}"
+        - "${panel_pair.design_image}"
+      rows: 1
+      cols: 2
+      padding: 30
+      trim_pad: 15
+      target_width_in: 10
+      out: anchor_progression_oriented_row_M0711_2esd.png

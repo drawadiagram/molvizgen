@@ -1,0 +1,41 @@
+# Two-panel row: the discontinuous-scaffolds design progression for
+# M0738_1o98 (batch p37-p41, same batch as M0739_1knp), another lineage
+# whose redesign incorporated an anchor residue (A261 at the root
+# generation) on its way to a passing final design (root motif_rmsd 1.861
+# -> final 0.777). Uses ../../anchor_progression_oriented_figure.py: a
+# single fixed camera orientation (looking down on the best-fit plane
+# through the *initial* design's own motif) shared across both panels, flat
+# yellow protein cartoon, hot-spot residues pink, anchor residues green.
+#
+# Prerequisite:
+#   ./resolve_progression.sh M0738_1o98
+#
+# Then, run from this directory:
+#   cd examples/discontinuous_scaffolds_anchor_progression && python3 ../../run_pipeline.py anchor_progression_oriented_pipeline_M0738_1o98.yaml
+
+out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression
+
+steps:
+  - name: panel_pair
+    kind: render_pair
+    args:
+      script: anchor_progression_oriented_figure.py
+      reference: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0738_1o98_initial.json
+      design: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0738_1o98_final.json
+      width: 1800
+      height: 1800
+      out_reference: panel_initial_oriented_M0738_1o98.png
+      out_design: panel_final_oriented_M0738_1o98.png
+
+  - name: row
+    kind: assemble
+    args:
+      images:
+        - "${panel_pair.reference_image}"
+        - "${panel_pair.design_image}"
+      rows: 1
+      cols: 2
+      padding: 30
+      trim_pad: 15
+      target_width_in: 10
+      out: anchor_progression_oriented_row_M0738_1o98.png
