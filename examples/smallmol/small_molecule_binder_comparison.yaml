@@ -1,8 +1,10 @@
 # Five-panel small-molecule-binder figure: a left "basic problem" panel
 # (the target ligand alone, hot-spot atoms in red vs. the rest in yellow,
 # per the RFDiffusion3 binder-design spec) next to a 2x2 grid of designs —
-# top row: 2 top-pLDDT designs from the nonadaptive reference campaign,
-# bottom row: 2 top-pLDDT designs from the adaptive production campaign.
+# top row: the best- and median-pLDDT designs from the nonadaptive reference
+# campaign, bottom row: the same pick (best + median AF2 pLDDT) from the
+# adaptive production campaign — one cherry-picked winner plus one
+# representative-of-the-distribution design per campaign, not two winners.
 # Both design rows carry the problem panel's red/yellow ligand hot-spot
 # coloring through into the bound complex (same atoms, same colors, now
 # next to the binder protein); the reference row's binder protein is green
@@ -21,8 +23,8 @@ figure_name: molviz_binder_comparison
 out_root: /home/mason/exdrive/rad/smallmol
 
 data:
-  nonadaptive: /home/mason/exdrive/rad/smallmol/nonadaptive_reference/small_molecule_binding-2/small_molecule_binding
-  prod: /home/mason/exdrive/rad/smallmol/prod/small_molecule_binding-2/small_molecule_binding
+  nonadaptive: /home/mason/exdrive/rad/smallmol/nonadaptive_reference/small_molecule_binding-2
+  prod: /home/mason/exdrive/rad/smallmol/prod/small_molecule_binding-2
 
 steps:
   # --- left panel: the design problem itself -----------------------------
@@ -36,24 +38,24 @@ steps:
       height: 1600
       out: problem_panel.png
 
-  # --- top row: 2 best (highest AF2 pLDDT) nonadaptive-reference designs --
+  # --- top row: best + median (by AF2 pLDDT) nonadaptive-reference designs -
   - name: nonadaptive_find
     kind: find_smallmol
     args:
       campaign_root: "${data.nonadaptive}"
       campaign_label: nonadaptive
 
-  - name: nonadaptive_top2
+  - name: nonadaptive_pick
     kind: filter_top_n
     args:
       in: "${nonadaptive_find.manifest}"
       score_field: af2_plddt
-      n: 2
+      select: top_and_median
 
   - name: nonadaptive_figures
     kind: generate_each
     args:
-      selection: "${nonadaptive_top2.manifest}"
+      selection: "${nonadaptive_pick.manifest}"
       script: generate_figure.py
       domain_color: green
       peptide_design_json: "${data.nonadaptive}/p1_in/ALR_binder_design.json"
@@ -61,24 +63,24 @@ steps:
       width: 1600
       height: 1600
 
-  # --- bottom row: 2 best (highest AF2 pLDDT) production designs ---------
+  # --- bottom row: best + median (by AF2 pLDDT) production designs -------
   - name: prod_find
     kind: find_smallmol
     args:
       campaign_root: "${data.prod}"
       campaign_label: prod
 
-  - name: prod_top2
+  - name: prod_pick
     kind: filter_top_n
     args:
       in: "${prod_find.manifest}"
       score_field: af2_plddt
-      n: 2
+      select: top_and_median
 
   - name: prod_figures
     kind: generate_each
     args:
-      selection: "${prod_top2.manifest}"
+      selection: "${prod_pick.manifest}"
       script: generate_figure.py
       domain_color: skyblue
       peptide_design_json: "${data.prod}/p1_in/ALR_binder_design.json"
