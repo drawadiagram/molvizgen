@@ -20,8 +20,8 @@
 # Then, run from this directory:
 #   cd examples/discontinuous_scaffolds_motif_single && python3 ../../run_pipeline.py motif_single_pipeline.yaml
 
-out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_single
-
+figure_name: molviz_motif_single
+out_root: /home/mason/exdrive/rad/discontinuous_scaffolds/prod
 steps:
   - name: panel
     kind: render

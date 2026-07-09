@@ -8,8 +8,7 @@
 # Run from this directory:
 #   cd examples/reference_experiment && python3 ../../run_pipeline.py reference_vs_experiment.yaml
 
-out_dir: analysis
-
+figure_name: analysis
 steps:
   # --- reference branch: the new_decoys directory's 70 structures --------
   - name: ref_find

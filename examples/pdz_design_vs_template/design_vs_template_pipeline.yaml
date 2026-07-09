@@ -35,8 +35,8 @@
 # resolve_template.sh and update the paths below if the production campaign
 # changes (more p*-p* groups added, etc).
 
-out_dir: /home/mason/exdrive/rad/pdzbinder/prod/molviz_design_vs_template
-
+figure_name: molviz_design_vs_template
+out_root: /home/mason/exdrive/rad/pdzbinder/prod
 steps:
   - name: panel_4k6y
     kind: render_pair

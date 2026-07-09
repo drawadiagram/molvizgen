@@ -6,8 +6,8 @@
 # Run from this directory:
 #   cd examples/heatmap && python3 ../../run_pipeline.py rmsd_heatmap_pipeline.yaml
 
-out_dir: analysis/rmsd_heatmap_demo
-
+figure_name: rmsd_heatmap_demo
+out_root: analysis
 steps:
   - name: find
     kind: find_flat

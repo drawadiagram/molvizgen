@@ -17,8 +17,8 @@
 # Then, run from this directory:
 #   cd examples/discontinuous_scaffolds_anchor_progression && python3 ../../run_pipeline.py anchor_progression_oriented_pipeline_M0739_1knp.yaml
 
-out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression
-
+figure_name: molviz_anchor_progression
+out_root: /home/mason/exdrive/rad/discontinuous_scaffolds/prod
 steps:
   - name: panel_pair
     kind: render_pair

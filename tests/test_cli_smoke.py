@@ -6,6 +6,7 @@ These exercise the actual argparse surface and script-to-script contract
 """
 import json
 import os
+import shutil
 import subprocess
 import sys
 
@@ -137,7 +138,8 @@ def test_montage_figures_tiles_two_pngs(tmp_path):
 
 def test_run_pipeline_end_to_end(tmp_path, fixtures_dir):
     pipeline = {
-        "out_dir": str(tmp_path / "out"),
+        "figure_name": "out",
+        "out_root": str(tmp_path),
         "steps": [
             {"name": "find", "kind": "find_flat", "args": {"dir": fixtures_dir, "glob": "domain*.pdb"}},
             {"name": "select", "kind": "filter_diversity", "args": {
@@ -158,3 +160,82 @@ def test_run_pipeline_end_to_end(tmp_path, fixtures_dir):
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "out" / "heatmap" / "heatmap.png").exists()
     assert (tmp_path / "out" / "select" / "rmsd_matrix.csv").exists()
+
+
+def test_run_pipeline_data_root_default_from_yaml(tmp_path, fixtures_dir):
+    pipeline = {
+        "figure_name": "out",
+        "out_root": str(tmp_path),
+        "data": {"default": fixtures_dir},
+        "steps": [
+            {"name": "find", "kind": "find_flat", "args": {"dir": "${data.default}", "glob": "domain*.pdb"}},
+        ],
+    }
+    pipeline_path = tmp_path / "pipeline.yaml"
+    pipeline_path.write_text(yaml.dump(pipeline))
+
+    result = subprocess.run(
+        [sys.executable, os.path.join(REPO_ROOT, "run_pipeline.py"), str(pipeline_path)],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    manifest = json.loads((tmp_path / "out" / "find" / "candidates.json").read_text())
+    ids = {c["id"] for c in manifest["candidates"]}
+    assert ids == {"domain1", "domain2", "domain3_unrelated"}
+
+
+def test_run_pipeline_root_flag_overrides_yaml_data_default(tmp_path, fixtures_dir):
+    other_dir = tmp_path / "other_fixtures"
+    other_dir.mkdir()
+    shutil.copy(os.path.join(fixtures_dir, "domain1.pdb"), other_dir / "domain1.pdb")
+
+    pipeline = {
+        "figure_name": "out",
+        "out_root": str(tmp_path),
+        "data": {"default": fixtures_dir},
+        "steps": [
+            {"name": "find", "kind": "find_flat", "args": {"dir": "${data.default}", "glob": "*.pdb"}},
+        ],
+    }
+    pipeline_path = tmp_path / "pipeline.yaml"
+    pipeline_path.write_text(yaml.dump(pipeline))
+
+    result = subprocess.run(
+        [sys.executable, os.path.join(REPO_ROOT, "run_pipeline.py"), str(pipeline_path),
+         "--root", f"default={other_dir}"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    manifest = json.loads((tmp_path / "out" / "find" / "candidates.json").read_text())
+    ids = {c["id"] for c in manifest["candidates"]}
+    assert ids == {"domain1"}
+
+
+def test_run_pipeline_embedded_data_ref_joins_subpath(tmp_path, fixtures_dir):
+    # The data root points one directory *above* fixtures_dir; the step's
+    # `dir` arg embeds the root ref plus a literal subpath, proving
+    # ${data.name} can be spliced into a larger string, not just a whole value.
+    parent_dir = os.path.dirname(fixtures_dir)
+    fixtures_basename = os.path.basename(fixtures_dir)
+
+    pipeline = {
+        "figure_name": "out",
+        "out_root": str(tmp_path),
+        "data": {"parent": parent_dir},
+        "steps": [
+            {"name": "find", "kind": "find_flat", "args": {
+                "dir": f"${{data.parent}}/{fixtures_basename}", "glob": "domain*.pdb",
+            }},
+        ],
+    }
+    pipeline_path = tmp_path / "pipeline.yaml"
+    pipeline_path.write_text(yaml.dump(pipeline))
+
+    result = subprocess.run(
+        [sys.executable, os.path.join(REPO_ROOT, "run_pipeline.py"), str(pipeline_path)],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    manifest = json.loads((tmp_path / "out" / "find" / "candidates.json").read_text())
+    ids = {c["id"] for c in manifest["candidates"]}
+    assert ids == {"domain1", "domain2", "domain3_unrelated"}

@@ -73,17 +73,19 @@ default (`--no-trim` to skip), shared by both `montage_figures.py` and
 
 ## The pipeline
 
-A pipeline is a YAML file: a base output directory plus an ordered list of
-named steps, each with a `kind` and `args`. Every `kind` belongs to one of
-five stages: **FIND** (enumerate a directory or campaign layout into a
-manifest), **FILTER** (reduce a manifest by score or structural diversity),
-**PLOT** (render a saved RMSD matrix as a heatmap), **GENERATE** (render
-PyMOL figures, per-candidate or one-off), and **ASSEMBLE** (tile rendered
-figures into a montage or panel layout) — see [Step kinds](#step-kinds) below
-for the full list. The example below chains FIND → FILTER → PLOT:
+A pipeline is a YAML file: a required `figure_name` label, an ordered list of
+named steps (each with a `kind` and `args`), and — separately — the data it
+operates on. Every `kind` belongs to one of five stages: **FIND** (enumerate
+a directory or campaign layout into a manifest), **FILTER** (reduce a
+manifest by score or structural diversity), **PLOT** (render a saved RMSD
+matrix as a heatmap), **GENERATE** (render PyMOL figures, per-candidate or
+one-off), and **ASSEMBLE** (tile rendered figures into a montage or panel
+layout) — see [Step kinds](#step-kinds) below for the full list. The example
+below chains FIND → FILTER → PLOT:
 
 ```yaml
-out_dir: analysis/rmsd_heatmap_demo
+figure_name: rmsd_heatmap_demo
+out_root: analysis
 
 steps:
   - name: find
@@ -115,7 +117,53 @@ cd examples/heatmap && python3 ../../run_pipeline.py rmsd_heatmap_pipeline.yaml
 be the *entire* value of a YAML key (not embedded in a larger string), and
 resolves to whatever type that field holds (a path, or a list of paths for
 things like a set of rendered PNGs). Each step gets its own output
-subdirectory, `out_dir/<step name>/`.
+subdirectory, `<out_root>/<figure_name>/<step name>/`.
+
+### Data roots and output location
+
+A pipeline YAML is meant to describe the **transformation** only — which
+steps, filters, colors, layout — not hardcode the absolute paths of the data
+it happens to have been developed against. Two mechanisms keep data out of
+the transformation:
+
+**Input data** — an optional top-level `data:` block declares named
+directory defaults, referenced from any step's `args` as `${data.NAME}`:
+
+```yaml
+data:
+  prod: /path/to/prod/experiment-1
+
+steps:
+  - name: prod_find
+    kind: find_smallmol
+    args:
+      campaign_root: "${data.prod}"                     # whole-value
+      # or, joined with a literal subpath in the same string:
+      # input: "${data.prod}/p1_in/design.json"
+```
+
+Unlike `${step_name.field}`, `${data.NAME}` may be embedded inside a larger
+string (e.g. joined with a subpath), since a data root is always a plain
+string. Override or supply a root at invocation time with `--root
+[NAME=]PATH` (repeatable; bare `PATH` with no `NAME=` sets the root named
+`default`) — this is what makes one YAML reusable against a different
+experiment directory with no edits:
+
+```
+python3 run_pipeline.py pipeline.yaml --root prod=/path/to/prod/experiment-2
+```
+
+**Output location** — `figure_name` (required) is a descriptive label used
+as the output subfolder name; `out_root` (optional, top-level, defaults to
+cwd `.`) is the base directory it's created under. Override `out_root` per
+invocation with `--out-root PATH`, independent of any `data:` roots:
+
+```
+python3 run_pipeline.py pipeline.yaml --root prod=/path/to/experiment-2 --out-root /path/to/scratch
+```
+
+An undeclared, unsupplied `${data.NAME}` is a hard error at the step that
+references it, with a message naming the missing root and how to supply it.
 
 ### Step kinds
 
@@ -144,7 +192,7 @@ its own directory (see each file's header comment for the exact command):
 | `examples/heatmap/` | `rmsd_heatmap_pipeline.yaml` — the diversity+heatmap demo above |
 | `examples/reference_experiment/` | `reference_vs_experiment.yaml` (+ its bash-wrapper twin `run_reference_vs_experiment.sh`) — two independent FIND→FILTER→GENERATE→ASSEMBLE branches (a reference directory, and a production campaign filtered to one best design per target) each reduced to a 5-panel montage, then assembled together into a single comparison figure |
 | `examples/diverse_figures/` | `run_diverse_figures.sh` — the bash-wrapper predecessor of the heatmap pipeline (FIND+FILTER+GENERATE+ASSEMBLE over one directory, no YAML) |
-| `examples/smallmol/` | `small_molecule_binder_comparison.yaml` — a left "basic problem" panel (the target ligand alone, hot-spot atoms highlighted) next to a 2x2 grid of top-pLDDT designs drawn from two campaigns (adaptive production vs. nonadaptive reference), assembled with `assemble_panel_layout` |
+| `examples/smallmol/` | `small_molecule_binder_comparison.yaml` — a left "basic problem" panel (the target ligand alone, hot-spot atoms highlighted) next to a 2x2 grid of top-pLDDT designs drawn from two campaigns (adaptive production vs. nonadaptive reference), assembled with `assemble_panel_layout`; also the canonical example of the `data:`/`${data.NAME}`/`--root` mechanism — rerun against a different production campaign directory with `--root prod=/path/to/experiment-2`, no YAML edits needed |
 | `examples/discontinuous_scaffolds_motif/` | `motif_panels_pipeline.yaml` (+ `resolve_panels.sh`/`run_motif_panels.sh`) — a 1x5 row, one discontinuous-scaffolds design per RESIDUE_ISLAND_COUNT (2-6), each panel built by `motif_superposition_figure.py`: reference ligand (licorice) with the best-passing folded design's protein (cartoon) Kabsch-aligned onto it and its motif hot-spot atoms highlighted (spheres) |
 | `examples/discontinuous_scaffolds_motif_single/` | `motif_single_pipeline.yaml` (+ `resolve_panel.sh`/`run_motif_single.sh`) — a single close-up panel for one four-island design: same cartoon+spheres as above, but the ligand as a 50%-transparent surface and the camera rotated so the motif hot spot (not the ligand) faces the viewer, via `motif_superposition_figure.py`'s `--ligand-representation surface` / `--orient-toward hotspot` / `--zoom-target motif` |
 | `examples/pdz_design_vs_template/` | `design_vs_template_pipeline.yaml` (+ `resolve_template.py`/`resolve_template.sh`/`run_design_vs_template.sh`) — two views of the pdzbinder production campaign's single highest-confidence design vs. its origin template, both built on the same C-terminal peptide-backbone Kabsch fit (`lib/peptide_align.py`): a two-panel row (`aligned_pair_figure.py`, domain cyan / peptide green in both panels) and a single superposed overlay (`aligned_overlay_figure.py`, template domain cyan / template peptide green / design domain red / design peptide yellow) |

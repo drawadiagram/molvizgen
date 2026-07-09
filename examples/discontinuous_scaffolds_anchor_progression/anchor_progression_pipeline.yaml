@@ -27,8 +27,8 @@
 # (RESIDUE_ISLAND_COUNT=4, the model with the most root-generation anchor
 # residues among every model whose redesign lineage ends in a passing model).
 
-out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression
-
+figure_name: molviz_anchor_progression
+out_root: /home/mason/exdrive/rad/discontinuous_scaffolds/prod
 steps:
   - name: panel_initial
     kind: render

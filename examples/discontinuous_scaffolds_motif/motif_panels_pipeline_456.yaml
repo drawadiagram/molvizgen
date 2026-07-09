@@ -11,8 +11,8 @@
 # Run from this directory:
 #   python3 ../../run_pipeline.py motif_panels_pipeline_456.yaml
 
-out_dir: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels
-
+figure_name: molviz_motif_panels
+out_root: /home/mason/exdrive/rad/discontinuous_scaffolds/prod
 steps:
   - name: panel_4islands
     kind: render

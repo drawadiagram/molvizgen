@@ -4,10 +4,21 @@
 # top row: 2 top-pLDDT designs from the nonadaptive reference campaign,
 # bottom row: 2 top-pLDDT designs from the adaptive production campaign.
 #
-# Run from this directory:
+# Run from this directory (uses the data: block's defaults, i.e. campaign -1):
 #   cd examples/smallmol && python3 ../../run_pipeline.py small_molecule_binder_comparison.yaml
+#
+# Or point the same recipe at a different data root, e.g. campaign -2,
+# without editing this file:
+#   cd examples/smallmol && python3 ../../run_pipeline.py small_molecule_binder_comparison.yaml \
+#     --root prod=/home/mason/exdrive/rad/smallmol/prod/small_molecule_binding-2
 
-out_dir: /home/mason/exdrive/rad/smallmol/molviz_binder_comparison
+figure_name: molviz_binder_comparison
+out_root: /home/mason/exdrive/rad/smallmol
+
+data:
+  impress: /home/mason/exdrive/rad/smallmol/IMPRESS/examples/small_molecule_binding
+  nonadaptive: /home/mason/exdrive/rad/smallmol/nonadaptive_reference/small_molecule_binding-1/small_molecule_binding
+  prod: /home/mason/exdrive/rad/smallmol/prod/small_molecule_binding-1
 
 steps:
   # --- left panel: the design problem itself -----------------------------
@@ -15,9 +26,9 @@ steps:
     kind: render
     args:
       script: ligand_hotspot_figure.py
-      input: /home/mason/exdrive/rad/smallmol/prod/small_molecule_binding-1/p1_in/sm_binder_design.json
+      input: "${data.prod}/p1_in/sm_binder_design.json"
       task: partial
-      pdb_override: /home/mason/exdrive/rad/smallmol/IMPRESS/examples/small_molecule_binding/p1_in/input_pdbs/IAI.pdb
+      pdb_override: "${data.impress}/p1_in/input_pdbs/IAI.pdb"
       width: 1600
       height: 1600
       out: problem_panel.png
@@ -26,7 +37,7 @@ steps:
   - name: nonadaptive_find
     kind: find_smallmol
     args:
-      campaign_root: /home/mason/exdrive/rad/smallmol/nonadaptive_reference/small_molecule_binding-1/small_molecule_binding
+      campaign_root: "${data.nonadaptive}"
       campaign_label: nonadaptive
 
   - name: nonadaptive_top2
@@ -61,7 +72,7 @@ steps:
   - name: prod_find
     kind: find_smallmol
     args:
-      campaign_root: /home/mason/exdrive/rad/smallmol/prod/small_molecule_binding-1
+      campaign_root: "${data.prod}"
       campaign_label: prod
 
   - name: prod_top2

@@ -17,10 +17,33 @@ GENERATE script over a manifest.
 `args` keys map 1:1 onto the underlying script's CLI flags
 (`n_select` -> `--n-select`); a later step can reference any earlier step's
 declared outputs with `${step_name.field}` (e.g. `${ref_find.manifest}`,
-`${ref_figures.pngs}`, `${ref_montage.image}`).
+`${ref_figures.pngs}`, `${ref_montage.image}`) — this form must be the
+*entire* value of a key and resolves to whatever type that field holds.
+
+Data vs. transformation: a pipeline YAML declares only the transformation
+(steps, filters, colors, layout) plus two small pieces of bookkeeping —
+`figure_name` (a required descriptive label, used as the output subfolder
+name) and an optional top-level `data:` block of named input-directory
+defaults. Actual data locations are an invocation-time concern:
+
+    figure_name: my_comparison
+    out_root: /path/to/output/base       # optional; default cwd "."
+    data:
+      prod: /path/to/prod/experiment-1   # optional defaults
+
+    steps:
+      - name: prod_find
+        args: {campaign_root: "${data.prod}"}
+
+`${data.NAME}` resolves against the merged `data:` block + `--root`
+overrides, and — unlike `${step.field}` — may be embedded inside a larger
+string (e.g. `"${data.prod}/subdir/file.json"`), since data roots are
+always plain strings.
 
 Usage:
     python3 run_pipeline.py pipeline.yaml
+    python3 run_pipeline.py pipeline.yaml --root prod=/path/to/experiment-2
+    python3 run_pipeline.py pipeline.yaml --root name=/path --out-root /other/base
 """
 import argparse
 import os
@@ -32,6 +55,7 @@ import yaml
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REF_PATTERN = re.compile(r"^\$\{([\w.]+)\}$")
+DATA_REF_PATTERN = re.compile(r"\$\{data\.([\w-]+)\}")
 
 sys.path.insert(0, os.path.join(SCRIPT_DIR, "lib"))
 from manifest import read_manifest  # noqa: E402
@@ -66,25 +90,43 @@ def flags_from_args(args, skip=()):
     return cmd
 
 
-def resolve(value, ctx):
-    """Recursively substitute ${step_name.field} references against `ctx`
-    (a dict of {step_name: {field: value}}). A value that is *entirely* one
-    placeholder resolves to whatever type that field holds (str or list);
-    placeholders embedded in a list are resolved element-wise."""
+def resolve_data(name, roots, context_value):
+    if name not in roots:
+        sys.exit(
+            f"Reference to undeclared data root {name!r} in '{context_value}' "
+            f"(declared: {sorted(roots) or 'none'}; add it to the YAML's 'data:' "
+            f"block or pass --root {name}=PATH)"
+        )
+    return roots[name]
+
+
+def resolve(value, ctx, roots):
+    """Recursively substitute ${step_name.field} and ${data.name} references.
+    `ctx` is a dict of {step_name: {field: value}} for prior steps' declared
+    outputs; `roots` is a dict of {name: path} for declared/supplied data
+    roots. A value that is *entirely* one ${...} placeholder resolves to
+    whatever type that field holds (str or list); placeholders embedded in a
+    list are resolved element-wise. ${data.name} may additionally appear
+    embedded inside a larger string (e.g. "${data.prod}/subdir/file.json"),
+    since data roots are always plain strings — ${step_name.field} may not."""
     if isinstance(value, str):
         m = REF_PATTERN.match(value)
-        if not m:
-            return value
-        step_name, _, field = m.group(1).partition(".")
-        if step_name not in ctx:
-            sys.exit(f"Reference to unknown step {step_name!r} in '{value}'")
-        if field not in ctx[step_name]:
-            sys.exit(f"Step {step_name!r} has no output {field!r} (has: {list(ctx[step_name])})")
-        return ctx[step_name][field]
+        if m:
+            step_name, _, field = m.group(1).partition(".")
+            if step_name == "data":
+                return resolve_data(field, roots, value)
+            if step_name not in ctx:
+                sys.exit(f"Reference to unknown step {step_name!r} in '{value}'")
+            if field not in ctx[step_name]:
+                sys.exit(f"Step {step_name!r} has no output {field!r} (has: {list(ctx[step_name])})")
+            return ctx[step_name][field]
+        if DATA_REF_PATTERN.search(value):
+            return DATA_REF_PATTERN.sub(lambda mm: resolve_data(mm.group(1), roots, value), value)
+        return value
     if isinstance(value, list):
-        return [resolve(v, ctx) for v in value]
+        return [resolve(v, ctx, roots) for v in value]
     if isinstance(value, dict):
-        return {k: resolve(v, ctx) for k, v in value.items()}
+        return {k: resolve(v, ctx, roots) for k, v in value.items()}
     return value
 
 
@@ -287,12 +329,40 @@ HANDLERS = {
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("config", help="Path to a pipeline YAML file")
+    parser.add_argument(
+        "--root", action="append", default=[], metavar="[NAME=]PATH",
+        help="Supply/override a named data root referenced as ${data.NAME}. "
+             "Bare PATH (no 'NAME=') sets the root named 'default'. Repeatable.",
+    )
+    parser.add_argument(
+        "--out-root", default=None,
+        help="Override the YAML's out_root default. Output lands at <out-root>/<figure_name>/.",
+    )
     args = parser.parse_args()
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
 
-    base_out_dir = os.path.abspath(config.get("out_dir", "."))
+    figure_name = config.get("figure_name")
+    if not figure_name:
+        sys.exit("Pipeline YAML must declare a top-level 'figure_name'")
+
+    if any(step.get("name") == "data" for step in config["steps"]):
+        sys.exit("Step name 'data' is reserved for the ${data.NAME} namespace; rename this step.")
+
+    roots = {
+        name: os.path.abspath(path)
+        for name, path in (config.get("data") or {}).items()
+        if path is not None
+    }
+    for raw in args.root:
+        name, sep, path = raw.partition("=")
+        if not sep:
+            name, path = "default", raw
+        roots[name] = os.path.abspath(path)
+
+    out_root = args.out_root or config.get("out_root", ".")
+    base_out_dir = os.path.abspath(os.path.join(out_root, figure_name))
     os.makedirs(base_out_dir, exist_ok=True)
 
     ctx = {}
@@ -303,7 +373,7 @@ def main():
             sys.exit(f"Unknown step kind {kind!r} in step {name!r} (known: {sorted(HANDLERS)})")
 
         print(f"== Step '{name}' ({kind}) ==", file=sys.stderr)
-        step_args = resolve(step.get("args", {}), ctx)
+        step_args = resolve(step.get("args", {}), ctx, roots)
         ctx[name] = HANDLERS[kind](name, step_args, base_out_dir)
 
     print("", file=sys.stderr)

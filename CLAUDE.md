@@ -14,7 +14,12 @@ step — each script is a standalone `argparse` CLI, runnable directly. A
 test per pipeline stage (see Commands below).
 
 This repo holds only code. It operates on PDB files that live elsewhere
-(pass a directory via `--dir`/`dir:`); it has no data of its own.
+(pass a directory via `--dir`/`dir:`); it has no data of its own. For
+`run_pipeline.py` YAMLs specifically, this separation is enforced by
+`figure_name`/`out_root`/`data:`/`--root`/`--out-root` (see Architecture
+below): a pipeline YAML declares only the transformation, never a hardcoded
+experiment path, so the same YAML can run against any data root supplied at
+invocation time.
 
 ## Commands
 
@@ -77,10 +82,10 @@ scratch; FILTER steps consume one manifest and produce a smaller/reordered
 one; GENERATE steps consume a manifest and produce images.
 
 **`run_pipeline.py` is a generic dispatcher, not a workflow engine.** A YAML
-pipeline is `out_dir` + an ordered list of `{name, kind, args}` steps. Each
-step's `kind` maps to a handler function (`HANDLERS` dict at the bottom of
-the file) that shells out to one of the CLI scripts in this directory,
-translating `args` keys 1:1 into `--flag` arguments
+pipeline is a required `figure_name` + an ordered list of `{name, kind, args}`
+steps. Each step's `kind` maps to a handler function (`HANDLERS` dict at the
+bottom of the file) that shells out to one of the CLI scripts in this
+directory, translating `args` keys 1:1 into `--flag` arguments
 (`flags_from_args`/`flag`). A later step references an earlier one's declared
 output with `${step_name.field}` (`resolve()` / `REF_PATTERN`) — this only
 matches when the *entire* string is the placeholder; it cannot be embedded
@@ -89,6 +94,27 @@ needs (e.g. `filter_diversity` declares `manifest`, `out_dir`, *and* `matrix`
 so a downstream `plot_heatmap` step can reference the CSV path directly).
 Adding a new step kind means writing one `handle_<kind>` function and
 registering it in `HANDLERS`.
+
+**Data roots are a second, deliberately asymmetric reference namespace,
+`${data.NAME}`.** An optional top-level `data:` block declares named
+input-directory defaults; `--root [NAME=]PATH` (repeatable; bare `PATH` sets
+the root named `default`) supplies or overrides them at invocation time,
+merged in `main()` before the step loop runs. Unlike `${step_name.field}`,
+`${data.NAME}` *may* be embedded inside a larger string (`DATA_REF_PATTERN`,
+a second, non-anchored regex only tried after the anchored `REF_PATTERN`
+match fails) — e.g. `"${data.prod}/p1_in/design.json"` — because a data root
+is always a plain string, so splicing it is unambiguous; `${step_name.field}`
+is not given the same treatment, since some step outputs are lists (e.g.
+`generate_each`'s `pngs`), where splicing would be ambiguous. This asymmetry
+is intentional, not an oversight — don't "fix" it by making both embeddable
+without re-deriving why list-valued outputs make that unsafe. A step
+literally named `data` is rejected at startup (its outputs would otherwise be
+unreachable, shadowed by the `${data.*}` branch in `resolve()`).
+Output location is a separate, parallel mechanism: `figure_name` (required)
+is a descriptive label, not a path; `out_root` (optional, top-level YAML,
+defaults to cwd `.`) is the base directory it's created under, overridable
+per-invocation with `--out-root`, independent of `--root`/`data:`. Together,
+`base_out_dir = <out_root>/<figure_name>`.
 
 **`lib/rmsd.py` is the structural-diversity core**, used by both
 `filter_diversity.py` (the manifest-based, general FILTER step) and the
