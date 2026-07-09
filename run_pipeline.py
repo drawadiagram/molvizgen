@@ -300,10 +300,22 @@ def handle_render_overlay(name, args, base_out_dir):
 def handle_assemble_panel_layout(name, args, base_out_dir):
     out_dir = step_out_dir(base_out_dir, name)
     image = os.path.join(out_dir, args.get("out", "panel_layout.png"))
+    # Each element of `right` is either a single image path or a whole
+    # ${step.pngs}-style list reference (resolve() returns that field's list
+    # as-is); flatten one level so a right-hand grid can be fed directly from
+    # one or more generate_each steps' declared png lists without an
+    # intermediate per-group montage step diluting the grid's cell sizing
+    # (see examples/smallmol's single 2x2 right-hand grid for why that
+    # matters: cell size is shared across the whole grid built in one
+    # build_montage() call, so every cell centers against the same reference
+    # instead of each sub-montage computing its own local max).
+    right_images = []
+    for r in args["right"]:
+        right_images.extend(r) if isinstance(r, list) else right_images.append(r)
     cmd = [sys.executable, script_path("assemble_panel_layout.py")]
     cmd += flags_from_args(args, skip=("left", "right", "out"))
     cmd += ["--left", args["left"]]
-    cmd += ["--right"] + args["right"]
+    cmd += ["--right"] + right_images
     cmd += ["--out", image]
     run(cmd)
     return {"image": image}
