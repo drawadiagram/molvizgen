@@ -58,6 +58,13 @@ def render_solo(obj, other_objs, out_png, zoom_buffer, width, height, dpi, bg):
         cmd.disable(name)
     cmd.enable(obj)
     cmd.bg_color(bg)
+    # cmd.zoom fits to the *current* viewport's aspect ratio, which
+    # defaults to a headless session's 640x480 (4:3) regardless of the
+    # width/height the figure is eventually ray-traced at -- for a portrait
+    # canvas (the default 1800x2400, 3:4) that mismatch crops/off-centers
+    # whatever was just zoomed. Set the real output aspect ratio first so
+    # the zoom is computed for the frame it will actually be rendered into.
+    cmd.viewport(width, height)
     cmd.zoom(obj, buffer=zoom_buffer)
     ray_trace_and_save(out_png, width, height, dpi)
     for name in other_objs:
