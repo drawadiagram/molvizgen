@@ -29,6 +29,14 @@ motif hot-spot residues are `--hotspot-color` (default pink); anchor
 residues (the panel spec's optional `anchor_positions` field) are
 `--anchor-color` (default green).
 
+`--motif-only` drops the whole-protein cartoon entirely: only the motif
+itself (hot-spot + anchor residues, as whole-residue sticks rather than a
+cartoon segment - a bare cartoon ribbon reads as disconnected fragments once
+there's no surrounding fold to anchor it visually) and the reference ligand
+are rendered, and the camera zooms tight to just that content instead of the
+whole reference+design complex. Everything else (alignment, the shared
+camera orientation, colors) is unchanged.
+
 Reads two panel-spec JSONs (see motif_superposition_figure.py's docstring
 for the schema; both produced by find_anchor_progression.py): `initial_spec`
 (the root design - also the source of the shared camera orientation) and
@@ -39,6 +47,7 @@ Usage:
         <out_initial.png> <out_final.png> \
         [--protein-color yellow] [--hotspot-color pink] [--anchor-color green] \
         [--ligand-color blue] [--ligand-representation licorice|surface] [--ligand-transparency 0.0] \
+        [--motif-only] \
         [--zoom-buffer 5.0] [--no-trim] [--trim-pad 20] \
         [--width 1800] [--height 1800] [--dpi 300] [--bg white]
 """
@@ -156,7 +165,7 @@ def show_ligand(ligand_sel, representation, color, transparency):
 
 def render_panel(panel, anchor_sel, hotspot_sel, out_png,
                   protein_color, hotspot_color, anchor_color, ligand_color,
-                  ligand_representation, ligand_transparency,
+                  ligand_representation, ligand_transparency, motif_only,
                   zoom_buffer, trim, trim_pad, width, height, dpi, bg):
     design_obj, reference_obj = panel["design_obj"], panel["reference_obj"]
     protein_sel = f"{design_obj} and polymer.protein"
@@ -169,20 +178,34 @@ def render_panel(panel, anchor_sel, hotspot_sel, out_png,
     # PyMOL session at once, for shared-orientation purposes).
     cmd.hide("everything", "all")
 
-    cmd.show("cartoon", protein_sel)
-    cmd.color(protein_color, protein_sel)
+    if not motif_only:
+        cmd.show("cartoon", protein_sel)
+        cmd.color(protein_color, protein_sel)
 
     show_ligand(ligand_sel, ligand_representation, ligand_color, ligand_transparency)
 
     if cmd.count_atoms(hotspot_sel) > 0:
         cmd.color(hotspot_color, hotspot_sel)
+        if motif_only:
+            cmd.show("sticks", hotspot_sel)
+            cmd.set("stick_radius", 0.25, hotspot_sel)
+            cmd.set("stick_quality", 15)
 
     if cmd.count_atoms(anchor_sel) > 0:
         cmd.color(anchor_color, anchor_sel)
+        if motif_only:
+            cmd.show("sticks", anchor_sel)
+            cmd.set("stick_radius", 0.25, anchor_sel)
+            cmd.set("stick_quality", 15)
 
     apply_material_aoshiny()
     cmd.bg_color(bg)
-    cmd.zoom(f"{reference_obj} or {design_obj}", buffer=zoom_buffer)
+    # motif_only has nothing else on screen to fit, so zoom tight to just the
+    # motif + ligand rather than the whole (mostly-hidden) reference+design
+    # complex the non-motif-only camera pans/zooms to fit.
+    zoom_sel = f"({anchor_sel}) or ({hotspot_sel}) or ({ligand_sel})" if motif_only \
+        else f"{reference_obj} or {design_obj}"
+    cmd.zoom(zoom_sel, buffer=zoom_buffer)
     ray_trace_and_save(out_png, width, height, dpi)
 
     if trim:
@@ -192,7 +215,7 @@ def render_panel(panel, anchor_sel, hotspot_sel, out_png,
 
 def build_figure(initial_spec_path, final_spec_path, out_initial_png, out_final_png,
                   protein_color, hotspot_color, anchor_color, ligand_color,
-                  ligand_representation, ligand_transparency,
+                  ligand_representation, ligand_transparency, motif_only,
                   zoom_buffer, trim, trim_pad, width, height, dpi, bg):
     init = load_panel(initial_spec_path, "init")
     final = load_panel(final_spec_path, "final")
@@ -230,12 +253,12 @@ def build_figure(initial_spec_path, final_spec_path, out_initial_png, out_final_
 
     render_panel(init, init_anchor_sel, init_hotspot_sel, out_initial_png,
                  protein_color, hotspot_color, anchor_color, ligand_color,
-                 ligand_representation, ligand_transparency,
+                 ligand_representation, ligand_transparency, motif_only,
                  zoom_buffer, trim, trim_pad, width, height, dpi, bg)
 
     render_panel(final, final_anchor_sel, final_hotspot_sel, out_final_png,
                  protein_color, hotspot_color, anchor_color, ligand_color,
-                 ligand_representation, ligand_transparency,
+                 ligand_representation, ligand_transparency, motif_only,
                  zoom_buffer, trim, trim_pad, width, height, dpi, bg)
 
 
@@ -254,6 +277,11 @@ def main():
                          help="How to render the reference ligand (default: licorice)")
     parser.add_argument("--ligand-transparency", type=float, default=0.0,
                          help="Surface transparency, 0 (opaque) to 1 (invisible); only applies to --ligand-representation surface (default: 0.0)")
+    parser.add_argument("--motif-only", action="store_true",
+                         help="Drop the whole-protein cartoon entirely and show only the motif hot-spot/anchor "
+                              "residues (as sticks) plus the reference ligand, camera zoomed tight to just that "
+                              "content instead of the whole reference+design complex (default: off, i.e. the "
+                              "original whole-protein-cartoon-plus-highlighted-motif figure)")
     parser.add_argument("--zoom-buffer", type=float, default=5.0,
                          help="Padding (Angstroms) when panning/zooming each panel's camera to fit its own reference+design complex (default: 5.0)")
     parser.add_argument("--no-trim", action="store_true",
@@ -265,7 +293,7 @@ def main():
     build_figure(
         args.initial_spec, args.final_spec, args.out_initial_png, args.out_final_png,
         args.protein_color, args.hotspot_color, args.anchor_color, args.ligand_color,
-        args.ligand_representation, args.ligand_transparency,
+        args.ligand_representation, args.ligand_transparency, args.motif_only,
         args.zoom_buffer, not args.no_trim, args.trim_pad,
         args.width, args.height, args.dpi, args.bg,
     )

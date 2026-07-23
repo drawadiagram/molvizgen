@@ -1,0 +1,31 @@
+# Individual motif-only images for M0349_1e3v: same shared-camera-orientation
+# alignment and hot-spot/anchor coloring as
+# anchor_progression_oriented_pipeline_M0349_1e3v.yaml, but via
+# anchor_progression_oriented_figure.py's --motif-only flag, which drops the
+# whole-protein cartoon entirely and shows only the motif hot-spot/anchor
+# residues (as sticks) plus the reference ligand, camera zoomed tight to just
+# that content. Unlike the oriented pipeline, there is no 'assemble' step
+# here: the two rendered panels (initial/root, final/redesign) are each kept
+# as their own standalone image rather than being montaged into a row.
+#
+# Prerequisite: panel_specs/M0349_1e3v_initial.json / _final.json must already
+# exist (see anchor_progression_pipeline.yaml's header comment:
+# `./resolve_progression.sh M0349_1e3v`).
+#
+# Then, run from this directory:
+#   cd examples/discontinuous_scaffolds_anchor_progression && python3 ../../run_pipeline.py anchor_progression_motif_pipeline_M0349_1e3v.yaml
+
+figure_name: molviz_anchor_progression
+out_root: /home/mason/exdrive/rad/discontinuous_scaffolds/prod
+steps:
+  - name: panel_motif
+    kind: render_pair
+    args:
+      script: figures/anchor_progression_oriented_figure.py
+      reference: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_initial.json
+      design: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_final.json
+      motif_only: true
+      width: 1800
+      height: 1800
+      out_reference: panel_initial_motif_M0349_1e3v.png
+      out_design: panel_final_motif_M0349_1e3v.png
