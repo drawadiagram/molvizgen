@@ -1,8 +1,8 @@
 # Two-panel row: the discontinuous-scaffolds design progression for
 # M0349_1e3v (see anchor_progression_pipeline_M0349_1e3v.yaml for the
 # original, single-color-cartoon version of this figure), re-rendered with
-# ../../anchor_progression_zoned_figure.py instead of
-# ../../motif_superposition_figure.py to make the anchor residues easier to
+# ../../figures/anchor_progression_zoned_figure.py instead of
+# ../../figures/motif_superposition_figure.py to make the anchor residues easier to
 # visually track between panels:
 #   - Both panels share ONE fixed camera orientation - looking straight down
 #     on the best-fit plane through the *initial* (root) design's own motif
@@ -26,7 +26,7 @@ steps:
   - name: panel_pair
     kind: render_pair
     args:
-      script: anchor_progression_zoned_figure.py
+      script: figures/anchor_progression_zoned_figure.py
       reference: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_initial.json
       design: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_final.json
       width: 1800

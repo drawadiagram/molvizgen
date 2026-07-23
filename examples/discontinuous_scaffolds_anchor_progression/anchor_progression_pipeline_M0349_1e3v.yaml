@@ -11,7 +11,7 @@
 # 1.491), with the same residues highlighted to show the portion of the
 # motif that was subject to anchoring during that redesign. Anchor and
 # hot-spot residues are both shown as colored cartoon segments (no
-# spheres), via ../../motif_superposition_figure.py's `anchor_positions`/
+# spheres), via ../../figures/motif_superposition_figure.py's `anchor_positions`/
 # `--anchor-color`/`--motif-representation cartoon` support.
 #
 # Prerequisite (produces the panel-spec JSONs this pipeline's render steps
@@ -27,7 +27,7 @@ steps:
   - name: panel_initial
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_initial.json
       protein_color: yellow
       hotspot_color: purple
@@ -41,7 +41,7 @@ steps:
   - name: panel_final
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_final.json
       protein_color: yellow
       hotspot_color: purple

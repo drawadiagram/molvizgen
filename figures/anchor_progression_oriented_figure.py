@@ -50,7 +50,7 @@ import sys
 import numpy as np
 from PIL import Image
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
 from kabsch import kabsch_fit, as_homogeneous  # noqa: E402
 from rfd3_motif_select import (  # noqa: E402
     load_design_spec, parse_atom_names, split_fixed_atoms,

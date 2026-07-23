@@ -27,7 +27,7 @@ steps:
     kind: generate_each
     args:
       selection: "${ref_select.manifest}"
-      script: pdz_figure.py
+      script: figures/pdz_figure.py
 
   - name: ref_montage
     kind: assemble
@@ -64,7 +64,7 @@ steps:
     kind: generate_each
     args:
       selection: "${exp_select.manifest}"
-      script: pdz_figure.py
+      script: figures/pdz_figure.py
 
   - name: exp_montage
     kind: assemble

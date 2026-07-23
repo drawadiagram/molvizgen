@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Application-specific FIND/lookup step for a two-panel "design progression"
-figure (see ../../motif_superposition_figure.py and
+figure (see ../../figures/motif_superposition_figure.py and
 ../../lib/rfd3_motif_select.py's `anchor_chai_positions`). Not a general
 molvizgen FIND kind: it knows this one campaign's exact directory layout (an
 ImpressBasePipeline DiscontinuousScaffoldsPipeline production run — see that

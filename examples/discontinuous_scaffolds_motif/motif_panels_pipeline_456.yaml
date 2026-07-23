@@ -17,7 +17,7 @@ steps:
   - name: panel_4islands
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0349_1e3v.json
       protein_color: yellow
       hotspot_color: purple
@@ -29,7 +29,7 @@ steps:
   - name: panel_5islands
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0078_1al6.json
       protein_color: yellow
       hotspot_color: purple
@@ -41,7 +41,7 @@ steps:
   - name: panel_6islands
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0157_1qh5.json
       protein_color: yellow
       hotspot_color: purple

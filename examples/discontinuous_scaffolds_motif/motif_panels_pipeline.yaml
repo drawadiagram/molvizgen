@@ -3,7 +3,7 @@
 # project), each panel showing the reference active site's ligand (licorice,
 # blue) with the best-passing folded design's protein superimposed onto it
 # (cartoon, yellow) and its motif hot-spot atoms highlighted (spheres,
-# purple) — see ../../motif_superposition_figure.py for the rendering logic
+# purple) — see ../../figures/motif_superposition_figure.py for the rendering logic
 # and ../../lib/rfd3_motif_select.py + ../../lib/kabsch.py for the new
 # selection/alignment library code it's built on.
 #
@@ -21,7 +21,7 @@ steps:
   - name: panel_2islands
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0209_1lij.json
       protein_color: yellow
       hotspot_color: purple
@@ -33,7 +33,7 @@ steps:
   - name: panel_3islands
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0110_1c0p.json
       protein_color: yellow
       hotspot_color: purple
@@ -45,7 +45,7 @@ steps:
   - name: panel_4islands
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0349_1e3v.json
       protein_color: yellow
       hotspot_color: purple
@@ -57,7 +57,7 @@ steps:
   - name: panel_5islands
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0078_1al6.json
       protein_color: yellow
       hotspot_color: purple
@@ -69,7 +69,7 @@ steps:
   - name: panel_6islands
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_panels/panel_specs/M0157_1qh5.json
       protein_color: yellow
       hotspot_color: purple

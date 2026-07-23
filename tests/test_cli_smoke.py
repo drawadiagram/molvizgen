@@ -71,7 +71,7 @@ def test_filter_diversity_over_fixture_domains(tmp_path, fixtures_dir):
 
 def test_pdz_figure_renders_a_nonempty_png(tmp_path, complex_ab_pdb):
     out_png = tmp_path / "out.png"
-    result = run_script("pdz_figure.py", complex_ab_pdb, str(out_png), "--width", "200", "--height", "250")
+    result = run_script("figures/pdz_figure.py", complex_ab_pdb, str(out_png), "--width", "200", "--height", "250")
     assert result.returncode == 0, result.stderr
     assert out_png.exists()
     img = Image.open(out_png)
@@ -82,7 +82,7 @@ def test_aligned_pair_figure_renders_two_nonempty_pngs(tmp_path, complex_ab_pdb,
     out_reference = tmp_path / "reference.png"
     out_design = tmp_path / "design.png"
     result = run_script(
-        "aligned_pair_figure.py", complex_cd_pdb, complex_ab_pdb, str(out_reference), str(out_design),
+        "figures/aligned_pair_figure.py", complex_cd_pdb, complex_ab_pdb, str(out_reference), str(out_design),
         "--reference-chain-domain", "C", "--reference-chain-peptide", "D",
         "--design-chain-domain", "A", "--design-chain-peptide", "B",
         "--width", "200", "--height", "250",
@@ -97,7 +97,7 @@ def test_aligned_pair_figure_renders_two_nonempty_pngs(tmp_path, complex_ab_pdb,
 def test_aligned_overlay_figure_renders_a_nonempty_png(tmp_path, complex_ab_pdb, complex_cd_pdb):
     out_png = tmp_path / "overlay.png"
     result = run_script(
-        "aligned_overlay_figure.py", complex_cd_pdb, complex_ab_pdb, str(out_png),
+        "figures/aligned_overlay_figure.py", complex_cd_pdb, complex_ab_pdb, str(out_png),
         "--reference-chain-domain", "C", "--reference-chain-peptide", "D",
         "--design-chain-domain", "A", "--design-chain-peptide", "B",
         "--width", "200", "--height", "250",
@@ -112,7 +112,7 @@ def test_aligned_overlay_figure_also_writes_solo_views(tmp_path, complex_ab_pdb,
     out_reference = tmp_path / "reference_alone.png"
     out_design = tmp_path / "design_alone.png"
     result = run_script(
-        "aligned_overlay_figure.py", complex_cd_pdb, complex_ab_pdb, str(out_png),
+        "figures/aligned_overlay_figure.py", complex_cd_pdb, complex_ab_pdb, str(out_png),
         "--reference-chain-domain", "C", "--reference-chain-peptide", "D",
         "--design-chain-domain", "A", "--design-chain-peptide", "B",
         "--out-reference", str(out_reference), "--out-design", str(out_design),

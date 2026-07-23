@@ -43,7 +43,7 @@ Run a single step directly, e.g.:
 ```
 python3 find_structures_flat.py --dir /path/to/pdbs --out candidates.json
 python3 filter_diversity.py --in candidates.json --out-dir analysis
-python3 plot_rmsd_heatmap.py --matrix analysis/rmsd_matrix.csv --out heatmap.png
+python3 figures/plot_rmsd_heatmap.py --matrix analysis/rmsd_matrix.csv --out heatmap.png
 ```
 
 Run a full YAML-described pipeline (see `run_pipeline.py`'s docstring and
@@ -73,6 +73,18 @@ the scripts themselves stay at the repo root.
 
 ## Architecture
 
+**Directory layout: GENERATE/PLOT scripts live under `figures/`, everything
+else at the repo root.** The 9 PyMOL scene-rendering GENERATE scripts (e.g.
+`pdz_figure.py`, `generate_figure.py`, `motif_superposition_figure.py`) plus
+the matplotlib-based `plot_rmsd_heatmap.py` live in `figures/`, since they
+share a distinct dependency footprint (rendering helpers or matplotlib) from
+the rest of the pipeline. `run_pipeline.py`, the FIND/FILTER scripts, the
+ASSEMBLE scripts (`montage_figures.py`, `assemble_panel_layout.py`),
+`pdz_pairwise_rmsd.py`, `rmsd_heatmap_notebook.py`, and `lib/` all stay at
+the repo root. Every mention of a script below by bare filename (e.g.
+`pdz_figure.py`) is accurate as a name regardless of which of the two it
+lives in.
+
 **The manifest is the contract.** Every step in the pipeline (`lib/manifest.py`)
 passes a list of candidate dicts as JSON: `{"candidates": [{"id", "pdb_path",
 "chain_domain", "chain_peptide", ...arbitrary scoring fields}, ...]}`.
@@ -85,7 +97,7 @@ one; GENERATE steps consume a manifest and produce images.
 pipeline is a required `figure_name` + an ordered list of `{name, kind, args}`
 steps. Each step's `kind` maps to a handler function (`HANDLERS` dict at the
 bottom of the file) that shells out to one of the CLI scripts in this
-directory, translating `args` keys 1:1 into `--flag` arguments
+directory or under `figures/`, translating `args` keys 1:1 into `--flag` arguments
 (`flags_from_args`/`flag`). A later step references an earlier one's declared
 output with `${step_name.field}` (`resolve()` / `REF_PATTERN`) — this only
 matches when the *entire* string is the placeholder; it cannot be embedded

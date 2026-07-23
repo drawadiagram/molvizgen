@@ -42,8 +42,8 @@ def _(mo):
     molvizgen is a tool repo, not a data repo — it takes a directory of PDB
     files as input (below, defaulting to the sibling `../new_decoys`
     directory). The three CLI scripts involved — `find_structures_flat.py`,
-    `filter_diversity.py`, `plot_rmsd_heatmap.py` — are unchanged by this
-    notebook; it drives them exactly as `run_pipeline.py` would, and
+    `filter_diversity.py`, `figures/plot_rmsd_heatmap.py` — are unchanged by
+    this notebook; it drives them exactly as `run_pipeline.py` would, and
     displays their output inline.
     """)
     return
@@ -85,7 +85,7 @@ def _(mo):
     | `filter_best_score` | `in`, `key`, `score_field`, `mode` (`max`\|`min`) | `manifest` |
     | `filter_diversity` | `in`, `chain_field` (default `chain_domain`), `n_select` | `manifest`, `out_dir`, `matrix` (the `rmsd_matrix.csv` this step wrote) |
     | `plot_heatmap` | `matrix` (a `rmsd_matrix.csv`) **or** `in` + `chain_field` (compute from a manifest), `title`, `dpi`, `annotate` | `image` |
-    | `generate_each` | `selection`, `script` (default `pdz_figure.py`), plus any extra flags forwarded per-candidate | `pngs`, `out_dir` |
+    | `generate_each` | `selection`, `script` (default `figures/pdz_figure.py`), plus any extra flags forwarded per-candidate | `pngs`, `out_dir` |
     | `assemble` | `images` (a list, or a single `${...}` ref to one), `rows`, `cols`, `out`, `target_width_in`, `dpi`, `padding`, `bg`, `no_scale` | `image` |
 
     `filter_diversity` is a thin wrapper around `lib/rmsd.py`: it loads
@@ -181,7 +181,7 @@ def _(
     with mo.status.spinner(title="PLOT: rendering the RMSD heatmap ..."):
         subprocess.run(
             [
-                sys.executable, str(REPO_DIR / "plot_rmsd_heatmap.py"),
+                sys.executable, str(REPO_DIR / "figures" / "plot_rmsd_heatmap.py"),
                 "--matrix", str(out_dir / "rmsd_matrix.csv"),
                 "--out", str(heatmap_path),
                 "--title", "Pairwise Cα RMSD",

@@ -5,7 +5,7 @@
 # visible. The camera looks straight down onto the best-fit plane of the
 # motif hot-spot atoms (--orient-toward hotspot) instead of the whole-complex
 # framing the five-panel row uses (--orient-toward ligand, the default) —
-# see ../../motif_superposition_figure.py's --ligand-representation and
+# see ../../figures/motif_superposition_figure.py's --ligand-representation and
 # --orient-toward flags, added for this figure without changing either
 # flag's default so the five-panel pipeline keeps rendering identically.
 # The camera always pans/zooms to fit the whole reference+design complex
@@ -26,7 +26,7 @@ steps:
   - name: panel
     kind: render
     args:
-      script: motif_superposition_figure.py
+      script: figures/motif_superposition_figure.py
       input: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_motif_single/panel_specs/M0097_1ctt.json
       protein_color: yellow
       hotspot_color: purple

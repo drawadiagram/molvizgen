@@ -29,7 +29,7 @@ import argparse
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
 from ligand_select import atom_name_selection, load_binder_design_spec  # noqa: E402
 from orient import orient_long_axis_vertical  # noqa: E402
 from pymol_scene import add_render_flags, apply_material_aoshiny, cmd, ray_trace_and_save  # noqa: E402

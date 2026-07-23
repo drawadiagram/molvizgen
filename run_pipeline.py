@@ -11,9 +11,9 @@ A pipeline is a list of named steps:
 
 Each step's `kind` dispatches to one of the existing CLI scripts in this
 directory (find_structures_flat.py, find_structures_campaign.py,
-filter_best_score.py, filter_diversity.py, plot_rmsd_heatmap.py,
-montage_figures.py) or to the generate_each pseudo-step, which loops a
-GENERATE script over a manifest.
+filter_best_score.py, filter_diversity.py, montage_figures.py) or one under
+figures/ (plot_rmsd_heatmap.py), or to the generate_each pseudo-step, which
+loops a GENERATE script (also under figures/) over a manifest.
 `args` keys map 1:1 onto the underlying script's CLI flags
 (`n_select` -> `--n-select`); a later step can reference any earlier step's
 declared outputs with `${step_name.field}` (e.g. `${ref_find.manifest}`,
@@ -206,7 +206,7 @@ def handle_filter_diversity(name, args, base_out_dir):
 def handle_plot_heatmap(name, args, base_out_dir):
     out_dir = step_out_dir(base_out_dir, name)
     image = os.path.join(out_dir, args.get("out", "heatmap.png"))
-    cmd = [sys.executable, script_path("plot_rmsd_heatmap.py")]
+    cmd = [sys.executable, script_path("figures/plot_rmsd_heatmap.py")]
     cmd += flags_from_args(args, skip=("out",))
     cmd += ["--out", image]
     run(cmd)
@@ -215,7 +215,7 @@ def handle_plot_heatmap(name, args, base_out_dir):
 
 def handle_generate_each(name, args, base_out_dir):
     out_dir = step_out_dir(base_out_dir, name)
-    gen_script = script_path(args.get("script", "pdz_figure.py"))
+    gen_script = script_path(args.get("script", "figures/pdz_figure.py"))
     extra = flags_from_args(args, skip=("selection", "script", "out_dir"))
 
     candidates = read_manifest(args["selection"])

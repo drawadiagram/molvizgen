@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
 import numpy as np  # noqa: E402
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
 from manifest import read_manifest_stdin_or_path, write_manifest  # noqa: E402,F401
 
 # Sequential "blue" ramp, light -> dark (references/palette.md, dataviz skill):

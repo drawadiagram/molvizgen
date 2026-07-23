@@ -2,7 +2,7 @@
 # M0711_2esd (batch p29-p36), another lineage whose redesign incorporated
 # an anchor residue (A284 at the root generation) on its way to a passing
 # final design (root motif_rmsd 1.521 -> final 0.699). Uses
-# ../../anchor_progression_oriented_figure.py: a single fixed camera
+# ../../figures/anchor_progression_oriented_figure.py: a single fixed camera
 # orientation (looking down on the best-fit plane through the *initial*
 # design's own motif) shared across both panels, flat yellow protein
 # cartoon, hot-spot residues pink, anchor residues green.
@@ -27,7 +27,7 @@ steps:
   - name: panel_pair
     kind: render_pair
     args:
-      script: anchor_progression_oriented_figure.py
+      script: figures/anchor_progression_oriented_figure.py
       reference: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0711_2esd_initial.json
       design: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0711_2esd_final.json
       width: 1800

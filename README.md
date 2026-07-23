@@ -26,13 +26,13 @@ python3 filter_top_n.py --in candidates.json --score-field af2_plddt --n 10 --mo
 python3 filter_top_n.py --in candidates.json --score-field af2_plddt --select top_and_median --out top2.json
 
 # PLOT: render a saved RMSD matrix as a heatmap
-python3 plot_rmsd_heatmap.py --matrix analysis/rmsd_matrix.csv --title "Pairwise Cα RMSD" --out heatmap.png
+python3 figures/plot_rmsd_heatmap.py --matrix analysis/rmsd_matrix.csv --title "Pairwise Cα RMSD" --out heatmap.png
 
 # GENERATE: render one auto-oriented figure for a single structure
-python3 pdz_figure.py my_structure.pdb figures/my_structure.png
+python3 figures/pdz_figure.py my_structure.pdb renders/my_structure.png
 
 # ASSEMBLE: tile rendered figures into a montage
-python3 montage_figures.py figures/*.png --rows 2 --cols 3 --out montage.png
+python3 montage_figures.py renders/*.png --rows 2 --cols 3 --out montage.png
 
 # Or run an entire FIND -> FILTER -> GENERATE -> ASSEMBLE pipeline from one YAML file
 cd examples/heatmap && python3 ../../run_pipeline.py rmsd_heatmap_pipeline.yaml
@@ -179,7 +179,7 @@ references it, with a message naming the missing root and how to supply it.
 | `filter_top_n` | FILTER: keep the top N candidates overall by a score field, no grouping (or, `select: top_and_median`, a fixed best+median pick) | `in`, `score_field`, `n`, `mode` (`max`\|`min`), `select` (`top_n`\|`top_and_median`) | `manifest` |
 | `filter_diversity` | FILTER: pairwise Cα RMSD + greedy max-min selection | `in`, `chain_field` (default `chain_domain`), `n_select` | `manifest`, `out_dir`, `matrix` |
 | `plot_heatmap` | PLOT: render a pairwise RMSD matrix as a heatmap | `matrix` (a saved `rmsd_matrix.csv`) **or** `in` + `chain_field` (compute fresh), `title`, `dpi`, `annotate` | `image` |
-| `generate_each` | GENERATE: render one figure per candidate in a manifest | `selection`, `script` (default `pdz_figure.py`), plus any flags to forward | `pngs`, `out_dir` |
+| `generate_each` | GENERATE: render one figure per candidate in a manifest | `selection`, `script` (default `figures/pdz_figure.py`), plus any flags to forward | `pngs`, `out_dir` |
 | `render` | GENERATE: one-off render for a script that takes a single (input, output) pair instead of looping over a manifest (e.g. `ligand_hotspot_figure.py`) | `script`, `input`, `out`, plus any flags to forward | `image` |
 | `render_pair` | GENERATE: one-off render for a script that produces two coupled panels from one shared alignment in a single PyMOL session (e.g. `aligned_pair_figure.py`) instead of one output | `script`, `reference`, `design`, `out_reference`, `out_design`, plus any flags to forward | `reference_image`, `design_image` |
 | `render_overlay` | GENERATE: one-off render for a script that takes two structures and produces one combined, superposed panel (e.g. `aligned_overlay_figure.py`) | `script`, `reference`, `design`, `out`, plus any flags to forward | `image` |
@@ -203,6 +203,11 @@ its own directory (see each file's header comment for the exact command):
 | `examples/discontinuous_scaffolds_anchor_progression/` | `anchor_progression_pipeline.yaml` (+ `resolve_progression.sh`/`run_anchor_progression.sh`) — a 1x2 row for one input motif (M0157_1qh5) showing its design progression across the one pipeline run (of several) whose adaptive fold-redesign lineage ends in a passing model: left panel is the initial (root) design with its anchor residues highlighted, right panel is the final (passing redesign) design with the same residues highlighted to show the portion of the motif that was subject to anchoring — both anchor and non-anchor hot-spot residues shown as colored cartoon segments (burnt orange / purple), no spheres — via `motif_superposition_figure.py`'s new `anchor_positions`/`--anchor-color`/`--motif-representation cartoon` support and `lib/rfd3_motif_select.py`'s new `anchor_chai_positions`. `anchor_progression_pipeline_M0349_1e3v.yaml` (+ `resolve_progression.sh M0349_1e3v`/`run_anchor_progression_M0349_1e3v.sh`) is a second worked model, picked as the one with the most root-generation anchor residues (2, vs. M0157_1qh5's 1) among every model whose redesign lineage ends in a passing model |
 
 ## Function reference
+
+Every GENERATE/PLOT script below (`plot_rmsd_heatmap.py` through
+`anchor_progression_zoned_figure.py`) lives under `figures/`; everything
+else — FIND, FILTER, ASSEMBLE, `run_pipeline.py`, `pdz_pairwise_rmsd.py`,
+`rmsd_heatmap_notebook.py` — is at the repo root, alongside `lib/`.
 
 | Script | Role |
 |---|---|

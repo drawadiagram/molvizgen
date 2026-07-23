@@ -26,7 +26,7 @@ for id in $SELECTED; do
     pdb_path="$PDB_DIR/$id.pdb"
     out_png="$FIGURES_DIR/${id}_pdz_complex.png"
     echo "  rendering $id -> $out_png" >&2
-    python3 "$REPO_ROOT/pdz_figure.py" "$pdb_path" "$out_png"
+    python3 "$REPO_ROOT/figures/pdz_figure.py" "$pdb_path" "$out_png"
     FIGURE_PNGS+=("$out_png")
 done
 

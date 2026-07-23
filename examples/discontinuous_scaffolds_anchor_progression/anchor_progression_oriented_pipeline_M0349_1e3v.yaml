@@ -8,7 +8,7 @@
 #     residues - rather than each panel independently re-orienting itself.
 #   - Motif hot-spot residues are pink; the anchor residues (identified at
 #     the root generation, A40/A100) are green (instead of purple/burnt_orange).
-# See ../../anchor_progression_oriented_figure.py.
+# See ../../figures/anchor_progression_oriented_figure.py.
 #
 # Prerequisite: panel_specs/M0349_1e3v_initial.json / _final.json must
 # already exist (see anchor_progression_pipeline_M0349_1e3v.yaml's header
@@ -23,7 +23,7 @@ steps:
   - name: panel_pair
     kind: render_pair
     args:
-      script: anchor_progression_oriented_figure.py
+      script: figures/anchor_progression_oriented_figure.py
       reference: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_initial.json
       design: /home/mason/exdrive/rad/discontinuous_scaffolds/prod/molviz_anchor_progression/panel_specs/M0349_1e3v_final.json
       width: 1800

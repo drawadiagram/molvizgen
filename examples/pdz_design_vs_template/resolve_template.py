@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Application-specific lookup step for the pdz_design_vs_template example (see
-../../aligned_pair_figure.py). Not a general molvizgen FIND step: FIND
+../../figures/aligned_pair_figure.py). Not a general molvizgen FIND step: FIND
 (find_structures_campaign.py) and FILTER (filter_top_n.py/filter_best_score.py)
 already resolve "which production complex(es)" generically -- this script
 only knows the one extra, campaign-specific fact those general steps don't:

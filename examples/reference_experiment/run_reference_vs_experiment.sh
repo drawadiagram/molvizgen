@@ -62,7 +62,7 @@ for pdb_path in $REF_SELECTED; do
     id="$(basename "$pdb_path" .pdb)"
     out_png="$FIGURES_DIR/reference/${id}_pdz_complex.png"
     echo "  rendering $id -> $out_png" >&2
-    python3 "$REPO_ROOT/pdz_figure.py" "$pdb_path" "$out_png"
+    python3 "$REPO_ROOT/figures/pdz_figure.py" "$pdb_path" "$out_png"
     REF_PNGS+=("$out_png")
 done
 
@@ -100,7 +100,7 @@ for pdb_path in $EXP_SELECTED; do
     id="$(basename "$pdb_path" .pdb)"
     out_png="$FIGURES_DIR/experiment/${id}_pdz_complex.png"
     echo "  rendering $id -> $out_png" >&2
-    python3 "$REPO_ROOT/pdz_figure.py" "$pdb_path" "$out_png"
+    python3 "$REPO_ROOT/figures/pdz_figure.py" "$pdb_path" "$out_png"
     EXP_PNGS+=("$out_png")
 done
 

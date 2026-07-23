@@ -27,7 +27,7 @@ OUT_DIR="${3:-/home/mason/exdrive/rad/smallmol/backbone_fold_overlay/final}"
 
 mkdir -p "$OUT_DIR"
 
-python3 "$REPO_ROOT/backbone_fold_overlay_figure.py" \
+python3 "$REPO_ROOT/figures/backbone_fold_overlay_figure.py" \
     "$BACKBONE_PDB" "$FOLD_PDB" \
     "$OUT_DIR/backbone_alone.png" \
     "$OUT_DIR/fold_alone.png" \

@@ -31,7 +31,7 @@ steps:
   - name: problem_panel
     kind: render
     args:
-      script: ligand_hotspot_figure.py
+      script: figures/ligand_hotspot_figure.py
       input: "${data.prod}/p1_in/ALR_binder_design.json"
       task: partial
       width: 1600
@@ -56,7 +56,7 @@ steps:
     kind: generate_each
     args:
       selection: "${nonadaptive_pick.manifest}"
-      script: generate_figure.py
+      script: figures/generate_figure.py
       domain_color: green
       peptide_design_json: "${data.nonadaptive}/p1_in/ALR_binder_design.json"
       peptide_design_task: partial
@@ -81,7 +81,7 @@ steps:
     kind: generate_each
     args:
       selection: "${prod_pick.manifest}"
-      script: generate_figure.py
+      script: figures/generate_figure.py
       domain_color: skyblue
       peptide_design_json: "${data.prod}/p1_in/ALR_binder_design.json"
       peptide_design_task: partial

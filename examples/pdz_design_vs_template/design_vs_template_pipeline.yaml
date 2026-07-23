@@ -9,10 +9,10 @@
 # the template's domain sequence and peptide length can differ from the
 # design's.
 #
-#   - `panel_4k6y` (render_pair, ../../aligned_pair_figure.py): two separate
+#   - `panel_4k6y` (render_pair, ../../figures/aligned_pair_figure.py): two separate
 #     panels (domain cyan cartoon, peptide green cartoon in both), tiled
 #     side by side by the `row` step.
-#   - `overlay_4k6y` (render_overlay, ../../aligned_overlay_figure.py): one
+#   - `overlay_4k6y` (render_overlay, ../../figures/aligned_overlay_figure.py): one
 #     combined panel with both structures superposed -- four colors tell
 #     the four chains apart (template domain cyan, template peptide green,
 #     design domain red, design peptide yellow) -- plus, since an overlay is
@@ -41,7 +41,7 @@ steps:
   - name: panel_4k6y
     kind: render_pair
     args:
-      script: aligned_pair_figure.py
+      script: figures/aligned_pair_figure.py
       reference: /home/mason/exdrive/rad/pdzbinder/prod/p1-p16/protein_binding/prod_in/p5_in/4k6y.pdb
       design: /home/mason/exdrive/rad/pdzbinder/prod/p1-p16/protein_binding/af_pipeline_outputs_multi/p5_sub1_sub2/af/prediction/dimer_models/4k6y/boltz_results_4k6y/predictions/4k6y/4k6y_model_0.pdb
       domain_color: cyan
@@ -68,7 +68,7 @@ steps:
   - name: overlay_4k6y
     kind: render_overlay
     args:
-      script: aligned_overlay_figure.py
+      script: figures/aligned_overlay_figure.py
       reference: /home/mason/exdrive/rad/pdzbinder/prod/p1-p16/protein_binding/prod_in/p5_in/4k6y.pdb
       design: /home/mason/exdrive/rad/pdzbinder/prod/p1-p16/protein_binding/af_pipeline_outputs_multi/p5_sub1_sub2/af/prediction/dimer_models/4k6y/boltz_results_4k6y/predictions/4k6y/4k6y_model_0.pdb
       reference_domain_color: cyan

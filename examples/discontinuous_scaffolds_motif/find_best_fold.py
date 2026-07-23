@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Application-specific FIND/lookup step for the discontinuous-scaffolds
-motif-superposition figure (see ../../motif_superposition_figure.py and
+motif-superposition figure (see ../../figures/motif_superposition_figure.py and
 ../../lib/rfd3_motif_select.py). Not a general molvizgen FIND step: it knows
 this one campaign's exact directory/CSV layout (an ImpressBasePipeline
 DiscontinuousScaffoldsPipeline production run — see that project's
