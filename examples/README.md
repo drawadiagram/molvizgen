@@ -61,13 +61,19 @@ hand-written `run_reference_vs_experiment.sh` wrapper that takes
 `small_molecule_binder_comparison.yaml` — a five-panel figure over
 `find_structures_smallmol.py`'s campaign layout: a left "problem" panel
 (the target ligand alone, hot-spot atoms colored via
-`ligand_hotspot_figure.py`) beside a 2×2 grid of designs (top row: 2
-top-pLDDT designs from a "nonadaptive reference" campaign; bottom row: 2
-top-pLDDT designs from the "prod" campaign), assembled with
-`assemble_panel_layout` (a wide left panel + right grid, not expressible as
-a uniform rows×cols montage). Demonstrates the `data:` block / `--root`
-mechanism: the YAML declares `data.nonadaptive`/`data.prod` defaults, and the
-same file can be re-pointed at a different campaign without editing it:
+`ligand_hotspot_figure.py`) beside a 2×2 grid of designs (top row: the
+best- and median-AF2-pLDDT designs, `filter_top_n --select top_and_median`,
+from a "nonadaptive reference" campaign; bottom row: the same best+median
+pick from the "prod" campaign — one cherry-picked winner plus one
+representative-of-the-distribution design per campaign, not two winners),
+assembled with `assemble_panel_layout` (a wide left panel + right grid, not
+expressible as a uniform rows×cols montage). Each design panel carries the
+problem panel's red-hot-spot/yellow-rest ligand coloring through onto its
+bound peptide via `generate_figure.py --peptide-design-json`, so the same
+atoms read as targeted vs. not in every panel. Demonstrates the `data:`
+block / `--root` mechanism: the YAML declares `data.nonadaptive`/`data.prod`
+defaults, and the same file can be re-pointed at a different campaign
+without editing it:
 
 ```
 cd examples/smallmol && python3 ../../run_pipeline.py small_molecule_binder_comparison.yaml \
@@ -162,3 +168,28 @@ contig's chai-sequence-position arithmetic (invariant across redesign
 generations) can resolve a motif residue's position in a later generation's
 fold. `run_anchor_progression*.sh` wrappers run the resolve step then a
 specific pipeline variant.
+
+## backbone_fold_overlay
+
+`run_backbone_fold_overlay.sh` — a bash-wrapper-only example (no YAML, no
+FIND/FILTER step) built around `backbone_fold_overlay_figure.py`: renders a
+de novo RFDiffusion3 backbone (one protomer) against the downstream
+AlphaFold2/ColabFold fold prediction it led to, in a production
+small_molecule_binding campaign. The fold prediction is of the *whole*
+oligomeric assembly the backbone seeds, folded as one long single-chain
+object (N copies of the protomer concatenated, continuous residue
+numbering) rather than the lone protomer the backbone itself is, so instead
+of a plain whole-structure `cealign` this uses `lib/oligomer_align.py` to
+slide a window along the fold and align onto whichever one actually
+corresponds to the backbone. Produces up to seven images from one shared
+alignment/orientation: the backbone alone, the fold alone (cartoon), two
+aligned overlap panels with representation/color swapped between passes
+(`--alt-representation`, default surface), and three independent fold-alone
+extras (`--out-fold-alt`, `--out-fold-ribbon`, `--out-fold-ss` — the last
+colored by `cmd.dss`'s per-residue secondary structure rather than one flat
+color). The backbone/fold pair baked into the wrapper's defaults (campaign
+`small_molecule_binding-2`, p2, task 73→78) was picked by surveying every
+rfd3→alphafold lineage across p1–p8 for the best structural agreement
+(RMSD 0.41 Å over 96/99 residues) — this example doesn't need a generic
+FIND/FILTER step because it's a single hand-picked pair, not a filtered set:
+`./run_backbone_fold_overlay.sh [backbone.cif.gz] [fold.pdb] [out_dir]`.

@@ -150,7 +150,17 @@ PDZ/peptide chain-A/chain-B convention and pink/lime-green coloring;
 for structures that don't use that convention. `ligand_hotspot_figure.py`
 applies the same long-axis-to-vertical orientation to a lone ligand (no
 second chain to twist toward the camera, since there's no protein in that
-figure at all).
+figure at all). `generate_figure.py` can also color its peptide chain by an
+RFDiffusion3 binder-design spec's hot-spot split (`--peptide-design-json`,
+same `lib/ligand_select.py` convention `ligand_hotspot_figure.py` uses)
+instead of one flat `--peptide-color-hex` — this is what lets a bound-complex
+panel carry the same red-hot-spot/yellow-rest coloring as an accompanying
+ligand-alone panel, so the same atoms read as targeted vs. not across every
+panel of a figure (see `examples/smallmol`, which also uses
+`filter_top_n.py`'s `--select top_and_median` mode there — a fixed
+best-scorer-plus-median-scorer pick, `--n` ignored, for a panel meant to show
+one representative result next to the best one rather than two cherry-picked
+winners).
 
 **That auto-orientation logic, and the PyMOL rendering boilerplate every
 GENERATE script needs, live in `lib/`, not in each figure script.**
@@ -386,4 +396,50 @@ most visible when panels have different aspect ratios. `assemble_panel_layout.py
 handles a layout a uniform `rows x cols` grid can't express: a wide "problem"
 panel spanning the full height of an adjacent `rows x cols` grid of "design"
 panels (built by calling `lib/montage.py`'s `build_montage()` directly), the
-left panel's width computed as a fraction of the *final* canvas.
+left panel's width computed as a fraction of the *final* canvas. Its
+`right` args can mix plain image paths with `${step.pngs}`-style list
+references (e.g. one `generate_each` step's whole output list per grid row);
+`run_pipeline.py`'s `handle_assemble_panel_layout` flattens one level before
+building the `--right` flag list, so the grid is still built in one
+`build_montage()` call — and therefore one shared cell size — rather than
+diluting it through an intermediate per-row montage step.
+
+**`lib/oligomer_align.py` is a fifth selection/alignment convention**,
+alongside chain ids, `lib/ligand_select.py`'s atom-name ligand split,
+`lib/rfd3_motif_select.py`'s contig-based motif mapping, and
+`lib/peptide_align.py`'s C-terminal Kabsch fit: aligning a single de novo
+RFDiffusion3 backbone (one protomer) onto a downstream AlphaFold2/ColabFold
+fold prediction of the *whole* oligomeric assembly it seeds — a production
+convention observed in the small_molecule_binding campaigns, where
+ColabFold predicts a homo-oligomer as one long single-chain object (N
+copies of the protomer concatenated back-to-back, continuous residue
+numbering) rather than N separate chains. Plain `cealign` over the whole,
+mismatched-length pair lets CE pick whatever local window of the fold
+happens to score best, not necessarily the repeat unit that actually
+corresponds to the backbone, so `find_best_repeat_window` instead slides a
+CA-count-sized window along the fold's chain — probing each candidate window
+via a disposable `cmd.create` copy, the same "probe, don't disturb the real
+object" idiom `lib/rmsd.py`'s pairwise matrix uses — and keeps whichever
+window `cealign` scores best (longest alignment, RMSD as tiebreak);
+`align_onto_best_repeat` then re-applies that one winning alignment for
+real. `backbone_fold_overlay_figure.py` (GENERATE) is built on top of it: it
+renders the backbone alone, the fold alone (cartoon), and two aligned
+overlap panels with representations/colors swapped between passes
+(`--alt-representation`, default surface, is whichever non-cartoon
+representation is being compared against cartoon) — plus optional
+fold-alone extras independent of that swap (`--out-fold-ribbon`; and
+`--out-fold-ss`, which colors licorice by `cmd.dss`'s per-residue secondary
+structure via `byres`, since `cmd.dss` only tags each residue's CA and a
+flat atom-level selection would leave side-chain atoms in an all-atom
+representation uncolored). Unlike every other GENERATE script here, it has
+no `run_pipeline.py` YAML: `examples/backbone_fold_overlay/` is a
+bash-wrapper-only example (like `examples/diverse_figures`), since a single
+one-off backbone/fold pair — picked by manually surveying every
+rfd3→alphafold lineage in a campaign for the best structural agreement —
+doesn't need a FIND/FILTER step around it. `lib/pymol_scene.py`'s
+`render_solo` (used by both this script and `motif_superposition_figure.py`)
+now sets `cmd.viewport` before `cmd.zoom`: `cmd.zoom` fits to the *current*
+viewport's aspect ratio, which defaults to a headless session's 640x480
+(4:3) regardless of the eventual ray-trace's width/height, so a portrait
+canvas's zoom used to be computed for the wrong aspect ratio and
+crop/off-center the render.
