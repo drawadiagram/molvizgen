@@ -140,7 +140,7 @@ the initial (root, failing) design next to the final (passing) redesign
 generation, with the *anchor* residues — motif residues identified as
 well-predicted enough to hold fixed during that redesign — highlighted in
 both panels so the same physical residues are traceable across generations.
-Ships in three renderer variants, each its own script/pipeline family (one
+Ships in four renderer variants, each its own script/pipeline family (one
 YAML per model, named `..._<model>.yaml`):
 - `anchor_progression_pipeline*.yaml` (`motif_superposition_figure.py`):
   anchor residues as burnt-orange spheres/cartoon, rest of the hot spot
@@ -154,10 +154,25 @@ YAML per model, named `..._<model>.yaml`):
   (`anchor_progression_zoned_figure.py`): same shared orientation, plus the
   protein is colored by distance from the motif (near = opaque yellow
   cartoon, far = translucent white surface) instead of a flat color.
+- `anchor_progression_motif_pipeline*.yaml`
+  (`anchor_progression_oriented_figure.py --motif-only`): same shared
+  orientation and hot-spot/anchor coloring as the oriented variant, but
+  drops the whole-protein cartoon entirely — only the motif hot-spot/anchor
+  residues (as sticks, not a cartoon segment, since a bare ribbon reads as
+  disconnected fragments once there's no surrounding fold) plus the
+  reference ligand are shown, camera zoomed tight to just that content
+  instead of panning/zooming to fit the whole reference+design complex.
+  Unlike the other three variants there is no `assemble` step: the two
+  rendered panels are kept as standalone images rather than montaged into a
+  row.
 
 Prerequisite: `./resolve_progression.sh [MODEL]` (default `M0157_1qh5`;
 `M0349_1e3v` and `M0739_1knp` are the other worked models with their own
-YAMLs) — `find_anchor_progression.py` (application-specific) picks, among
+`anchor_progression_pipeline*`/`run_anchor_progression*.sh` YAMLs and
+wrappers; `M0110_1c0p`, `M0711_2esd`, and `M0738_1o98` additionally have
+`anchor_progression_oriented_pipeline*`/`anchor_progression_motif_pipeline*`
+YAMLs, run directly with `run_pipeline.py` rather than through a dedicated
+wrapper script) — `find_anchor_progression.py` (application-specific) picks, among
 every independent pipeline run that ever processed the requested model, the
 one whose redesign lineage actually reaches a passing model (many don't
 converge at all), then writes `<model>_initial.json`/`<model>_final.json`
